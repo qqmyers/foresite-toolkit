@@ -2,7 +2,7 @@
 import re
 from ore import *
 from utils import namespaces, OreException, unconnectedAction, pageSize
-from rdflib import URIRef, BNode, plugin, syntax
+from rdflib import URIRef, BNode, Literal, plugin, syntax
 from lxml import etree
 from lxml.etree import Element, SubElement
 
@@ -118,6 +118,224 @@ class RdfLibSerializer(ORESerializer):
 class AtomSerializer(ORESerializer):
 
     def __init__(self, format="atom", public=1):
+        ORESerializer.__init__(self, format)
+        self.spacesub = re.compile('(?<=>)[ ]+(?=<)')
+        self.done_triples = []
+
+    def make_agent(self, parent, agent):
+        n = SubElement(parent, 'name')
+        try:
+            name = agent._foaf.name[0]
+            n.text = str(name)
+            self.done_triples.append((agent._uri_, namespaces['foaf']['name'], name))
+        except:
+            pass
+
+        if agent._foaf.mbox:
+            n = SubElement(parent, 'email')
+            mb = agent._foaf.mbox[0]
+            self.done_triples.append((agent._uri_, namespaces['foaf']['mbox'], mb))
+            mb = str(mb)
+            if mb[:7] == "mailto:":
+                mb = mb[7:]
+            n.text = mb            
+        if not isinstance(agent._uri_, BNode):
+            n = SubElement(parent, 'uri')
+            n.text = str(agent._uri_)
+
+
+    def make_link(self, parent, rel, t, g):
+        e = SubElement(parent, 'link', rel=rel, href=str(t))
+        fmts = list(g.objects(t, namespaces['dc']['format']))
+        if fmts:
+            e.set('type', str(fmts[0]))
+        langs = list(g.objects(t, namespaces['dc']['language']))
+        if langs:
+            e.set('hreflang', str(langs[0]))        
+        exts = list(g.objects(t, namespaces['dc']['extent']))
+        if exts:
+            e.set('length', str(exts[0]))
+        titls = list(g.objects(t, namespaces['dc']['title']))
+        if titls:
+            e.set('title', str(titls[0]))
+
+    def serialize(self, rem, page=-1):
+        aggr = rem._aggregation_
+        g = self.merge_graphs(rem)
+        
+        namespaces[''] = namespaces['atom']
+        root = Element("entry", nsmap=namespaces)
+        namespaces[''] = myNamespace
+
+        # entry/id == URI-A
+        e = SubElement(root, 'id')
+        e.text = str(aggr.uri)   
+
+        # entry/title == Aggr's dc:title 
+        if not aggr._dc.title:
+            raise OreException("Atom Serialisation requires title on aggregation")
+        else:
+            e = SubElement(root, 'title')
+            e.text = str(aggr._dc.title[0])  
+
+        # entry/author == Aggr's dcterms:creator
+        for who in aggr._dcterms.creator:
+            e = SubElement(root, 'author')
+            agent = all_objects[who]
+            self.make_agent(e, agent)
+
+        # entry/contributor == Aggr's dcterms:contributor
+        for bn in aggr._dcterms.contributor:
+            e = SubElement(root, 'contributor')
+            agent = all_objects[bn]
+            self.make_agent(e, agent)
+
+        # entry/category == Aggr's rdf:type
+        for t in aggr._rdf.type:
+            e = SubElement(root, 'category', term=str(t))
+            try:
+                scheme = list(g.objects(t, namespaces['rdfs']['isDefinedBy']))[0]
+                e.set('scheme', str(scheme))
+            except:
+                pass
+            try:
+                label = list(g.objects(t, namespaces['rdfs']['label']))[0]
+                e.set('label', str(label))
+            except:
+                pass
+
+        # entry/summary
+        if aggr._dc.description:
+            e = SubElement(root, 'summary')
+            e.text = str(aggr._dc.description[0])
+
+        # entry/link, and other Aggr metadata
+        done = [namespaces['rdf']['type'],
+                namespaces['ore']['aggregates'],
+                namespaces['dcterms']['creator'],
+                namespaces['dcterms']['contributor'],
+                namespaces['dc']['title'],
+                namespaces['dc']['description']
+                ]
+                
+        for (p, o) in g.predicate_objects(aggr.uri):
+            if not p in done:
+                if isinstance(o, URIRef):
+                    self.make_link(root, p, o, g)
+                elif isinstance(o, Literal):
+                    # make element for literal
+                    (ns, ename) = g.split_uri(str(p))
+                    e = SubElement(root, "{%s}%s" % (ns, ename))
+                    e.text = str(o)
+
+
+        # entry/content   //  link[@rel="alternate"]
+        # Do we have a splash page?
+        altDone = 0
+        atypes = aggr._rdf._type
+        possAlts = []
+        for (p, r) in aggr.resources:
+            mytypes = r._rdf.type
+            if namespaces['eurepo']['humanStartPage'] in mytypes:
+                altDone = 1
+                self.make_link(root, 'alternate', r.uri, g)
+                break
+            # check if share non Aggregation type
+            # eg aggr == article and aggres == article, likely
+            # to be good alternate
+            for m in mytypes:
+                if m != namespaces['ore']['Aggregation'] and \
+                   m in atypes:
+                    possAlt.append(r.uri)
+
+        if not altDone:
+            # look through resource maps for HTML/XHTML
+            # eg an RDFa enabled splash page
+            for orm in aggr._ore.isDescribedBy:
+                rem2 = all_objects[orm]
+                found = 0
+                for f in rem2._dc.format:
+                    if str(f) == "text/html":
+                        possAlts.append(orm)
+                        found = 1
+                if not found:
+                    # check orm ends in html
+                    if str(orm)[-5:] == ".html":
+                        possAlt.append(orm)
+                
+        if not altDone and atomXsltUri:
+            self.make_link(root, 'alternate', atomXsltUri % rem.uri, g)
+            altDone = 1
+
+        if not altDone and possAlts:
+            # XXX more intelligent algorithm here
+            self.make_link(root, 'alternate', possAlts[0], g)
+            altDone = 1
+
+        if not altDone:
+            e = SubElement(root, 'content')
+            e.set('type', 'html')
+            # make some representative html
+            html = ['<ul>']
+            for (r, p) in aggr.resources:
+                html.append('<li><a href="%s">%s</a></li>' % (r.uri, r.title[0]))
+            html.append('</ul>')
+            e.text = '\n'.join(html)
+
+        # entry/link[@rel='self'] == URI-R
+        self.make_link(root, 'self', rem._uri_, g)
+            
+        # entry/published == ReM's dcterms:created
+        if rem._dcterms.created:
+            e = SubElement(root, 'published')
+            e.text = rem._dcterms.created[0]
+            # Can only have one!
+
+        # entry/updated == ReM's dcterms:modified
+        # Last time built is now!
+        e = SubElement(root, 'updated')
+        e.text = now()
+
+        # entry/rights == ReM's dc:rights
+        if rem._dc.rights:
+            e = SubElement(root, 'rights')
+            e.text = rem._dc.rights[0]
+
+        # entry/source/author == ReM's dcterms:creator
+        if rem._dcterms.creator:
+            # Should at least be our generator! (right?)
+            src = SubElement(root, 'source')
+            for who in rem._dcterms.creator:
+                e = SubElement(src, 'author')
+                agent = all_objects[who]
+                self.make_agent(e, agent)
+
+        # Remove aggregation, resource map props already done
+        # All of agg res needs to be done
+
+        for (r, p) in aggr.resources:
+            self.make_link(root, namespaces['ore']['aggregates'], r.uri, g)
+
+            # Now AtomTriples RDF
+            # <at:md subject="URI-X">    --- not per spec at moment
+            #   <ns:elem>data</ns:elem>
+            # </at:md>
+
+
+        data = etree.tostring(root, pretty_print=True)
+        #data = data.replace('\n', '')
+        #data = self.spacesub.sub('', data)
+        uri = str(rem._uri_)
+
+        return ReMDocument(uri, data)
+
+
+            
+
+
+class OldAtomSerializer(ORESerializer):
+
+    def __init__(self, format="atom0.9", public=1):
         ORESerializer.__init__(self, format)
         self.spacesub = re.compile('(?<=>)[ ]+(?=<)')
         self.done_triples = []

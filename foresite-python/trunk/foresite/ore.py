@@ -27,7 +27,7 @@ class Graph(ConjunctiveGraph):
         # given namespaced uri, find base property name
         slsplit = uri.split('/')
         hsplit = slsplit[-1].split('#')
-        return hsplit[-1]
+        return (uri[:0-len(hsplit[-1])], hsplit[-1])
         
 
 class OREResource(object):

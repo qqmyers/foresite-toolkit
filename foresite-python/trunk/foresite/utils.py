@@ -25,6 +25,9 @@ unconnectedAction = 'drop'  # drop any unconnected triples silently
 # Number of resources per page to serialise
 pageSize = 10
 
+# XSLT server to create alternate representation from Atom Entry
+atomXsltUri = ""
+# atomXsltUri = "http://www.oreproxy.org/alt?what=%s"
 
 def gen_proxy_uuid(res, aggr):
     u = gen_uuid()
@@ -62,6 +65,8 @@ namespaces = {'ore' : Namespace('http://www.openarchives.org/ore/terms/'),
               'grddl' : Namespace('http://www.w3.org/2003/g/data-view#'),
               'swetodblp' : Namespace('http://lsdis.cs.uga.edu/projects/semdis/opus#'),
               'skos' : Namespace('http://www.w3.org/2004/02/skos/core#'),
+              'eurepo' : Namespace('info:eu-repo/semantics/'),
+              'at' : Namespace('http://purl.org/syndication/atomtriples/1'),
               '' : myNamespace
               }
 
