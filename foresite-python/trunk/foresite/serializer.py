@@ -31,18 +31,16 @@ class ORESerializer(object):
         g = Graph()
         if not list(rem._graph_.objects(rem._uri_, namespaces['dcterms']['creator'])):
             rem.add_agent(libraryAgent, 'creator')
+        n = now()
+        if not rem.created:
+            rem._dcterms.created = n
+        rem._dcterms.modified = n
 
         g += rem._graph_
         for at in rem._triples_:
             g += at._graph_
         for c in rem._agents_:
             g += c._graph_
-        n = now()
-        if not rem.created:
-            g.add((rem._uri_, namespaces['dcterms']['created'], Literal(n)))
-            rem._dcterms.created = n
-        g.add((rem._uri_, namespaces['dcterms']['modified'], Literal(n)))
-        rem._dcterms.modified = n
         
         aggr = rem._aggregation_
         g += aggr._graph_
@@ -127,19 +125,13 @@ class AtomSerializer(ORESerializer):
 
 
     def generate_rdf(self, parent, sg):
-        # extract not processed parts of graph
-        # serialise with rdflib
-        # parse with lxml and add to parent element
-
+        # remove already done, then serialize to rdf/xml
         for t in self.done_triples:
             sg.remove(t)
-
         data = sg.serialize(format='xml')
         root = etree.fromstring(data)
         for child in root:
             parent.append(child)
-
-
 
     def make_agent(self, parent, agent):
         n = SubElement(parent, 'name')
@@ -149,7 +141,6 @@ class AtomSerializer(ORESerializer):
             self.done_triples.append((agent._uri_, namespaces['foaf']['name'], name))
         except:
             pass
-
         if agent._foaf.mbox:
             n = SubElement(parent, 'email')
             mb = agent._foaf.mbox[0]
@@ -266,7 +257,8 @@ class AtomSerializer(ORESerializer):
         #    if not p in done:
         #        if isinstance(o, URIRef):
         #            self.make_link(root, p, o, g)
-
+        #            add to done triples?
+        
         # Just: isAggregatedBy, isDescribedBy, similarTo
         for t in aggr._ore.isAggregatedBy:
             self.make_link(root, namespaces['ore']['isAggregatedBy'], t, g)
@@ -333,7 +325,9 @@ class AtomSerializer(ORESerializer):
 
         # entry/link[@rel='self'] == URI-R
         self.make_link(root, 'self', rem._uri_, g)
-
+        # entry/link[@rel='???'] == URI-A
+        self.make_link(root, 'about', aggr._uri_, g)
+        
         ### These are generated automatically in merge_graphs
         
         # entry/published == ReM's dcterms:created
@@ -390,7 +384,6 @@ class AtomSerializer(ORESerializer):
         return ReMDocument(uri, data)
 
 
-            
 
 
 class OldAtomSerializer(ORESerializer):
