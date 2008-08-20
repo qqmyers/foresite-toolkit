@@ -1,7 +1,7 @@
 
 import re
 from ore import *
-from utils import namespaces, OreException, unconnectedAction, pageSize
+from utils import namespaces, OreException, unconnectedAction, pageSize, gen_uuid
 from rdflib import URIRef, BNode, Literal, plugin, syntax
 from lxml import etree
 from lxml.etree import Element, SubElement
@@ -37,10 +37,13 @@ class ORESerializer(object):
             g += at._graph_
         for c in rem._agents_:
             g += c._graph_
+        n = now()
         if not rem.created:
-            g.add((rem._uri_, namespaces['dcterms']['created'], Literal(now())))
-        g.add((rem._uri_, namespaces['dcterms']['modified'], Literal(now())))
-
+            g.add((rem._uri_, namespaces['dcterms']['created'], Literal(n)))
+            rem._dcterms.created = n
+        g.add((rem._uri_, namespaces['dcterms']['modified'], Literal(n)))
+        rem._dcterms.modified = n
+        
         aggr = rem._aggregation_
         g += aggr._graph_
         for at in aggr._triples_:
@@ -122,6 +125,22 @@ class AtomSerializer(ORESerializer):
         self.spacesub = re.compile('(?<=>)[ ]+(?=<)')
         self.done_triples = []
 
+
+    def generate_rdf(self, parent, sg):
+        # extract not processed parts of graph
+        # serialise with rdflib
+        # parse with lxml and add to parent element
+
+        for t in self.done_triples:
+            sg.remove(t)
+
+        data = sg.serialize(format='xml')
+        root = etree.fromstring(data)
+        for child in root:
+            parent.append(child)
+
+
+
     def make_agent(self, parent, agent):
         n = SubElement(parent, 'name')
         try:
@@ -148,47 +167,69 @@ class AtomSerializer(ORESerializer):
         e = SubElement(parent, 'link', rel=rel, href=str(t))
         fmts = list(g.objects(t, namespaces['dc']['format']))
         if fmts:
-            e.set('type', str(fmts[0]))
+            f = fmts[0]
+            e.set('type', str(f))
+            self.done_triples.append((t, namespaces['dc']['format'], f))
         langs = list(g.objects(t, namespaces['dc']['language']))
         if langs:
+            l = langs[0]
             e.set('hreflang', str(langs[0]))        
+            self.done_triples.append((t, namespaces['dc']['language'], l))
+            
         exts = list(g.objects(t, namespaces['dc']['extent']))
         if exts:
-            e.set('length', str(exts[0]))
+            l = exts[0]
+            e.set('length', str(l))
+            self.done_triples.append((t, namespaces['dc']['extent'], l))
+            
         titls = list(g.objects(t, namespaces['dc']['title']))
         if titls:
-            e.set('title', str(titls[0]))
+            l = titls[0]
+            e.set('title', str(l))
+            self.done_triples.append((t, namespaces['dc']['title'], l))
+
 
     def serialize(self, rem, page=-1):
         aggr = rem._aggregation_
         g = self.merge_graphs(rem)
         
-        namespaces[''] = namespaces['atom']
+        #namespaces[''] = namespaces['atom']
+        del namespaces[u'']
         root = Element("entry", nsmap=namespaces)
         namespaces[''] = myNamespace
 
-        # entry/id == URI-A
+        # entry/id == tag for entry == ReM dc:identifier
+        # if not exist, generate Yet Another uuid
         e = SubElement(root, 'id')
-        e.text = str(aggr.uri)   
+        if rem._dc.identifier:
+            dcid = rem._dc.identifier[0]
+            e.text = str(dcid)
+            self.done_triples.append((rem._uri_, namespaces['dc']['identifier'], dcid))
+        else:
+            e.text = "urn:uuid:%s" % gen_uuid()
 
         # entry/title == Aggr's dc:title 
         if not aggr._dc.title:
             raise OreException("Atom Serialisation requires title on aggregation")
         else:
             e = SubElement(root, 'title')
-            e.text = str(aggr._dc.title[0])  
+            dctit = aggr._dc.title[0]
+            e.text = str(dctit)
+            self.done_triples.append((aggr._uri_, namespaces['dc']['title'], dctit))
 
         # entry/author == Aggr's dcterms:creator
         for who in aggr._dcterms.creator:
             e = SubElement(root, 'author')
             agent = all_objects[who]
             self.make_agent(e, agent)
+            self.done_triples.append((aggr._uri_, namespaces['dcterms']['creator'], agent._uri_))
 
         # entry/contributor == Aggr's dcterms:contributor
         for bn in aggr._dcterms.contributor:
             e = SubElement(root, 'contributor')
             agent = all_objects[bn]
             self.make_agent(e, agent)
+            self.done_triples.append((aggr._uri_, namespaces['dcterms']['contributor'], agent._uri_))
 
         # entry/category == Aggr's rdf:type
         for t in aggr._rdf.type:
@@ -196,38 +237,46 @@ class AtomSerializer(ORESerializer):
             try:
                 scheme = list(g.objects(t, namespaces['rdfs']['isDefinedBy']))[0]
                 e.set('scheme', str(scheme))
+                self.done_triples.append((t, namespaces['rdfs']['isDefinedBy'], scheme))
             except:
                 pass
             try:
                 label = list(g.objects(t, namespaces['rdfs']['label']))[0]
                 e.set('label', str(label))
+                self.done_triples.append((t, namespaces['rdfs']['label'], label))
             except:
                 pass
-
+            self.done_triples.append((aggr._uri_, namespaces['rdf']['type'], t))
         # entry/summary
         if aggr._dc.description:
             e = SubElement(root, 'summary')
-            e.text = str(aggr._dc.description[0])
+            desc = aggr._dc.description[0]
+            e.text = str(desc)
+            self.done_triples.append((aggr._uri_, namespaces['dc']['description'], desc))
 
-        # entry/link, and other Aggr metadata
-        done = [namespaces['rdf']['type'],
-                namespaces['ore']['aggregates'],
-                namespaces['dcterms']['creator'],
-                namespaces['dcterms']['contributor'],
-                namespaces['dc']['title'],
-                namespaces['dc']['description']
-                ]
-                
-        for (p, o) in g.predicate_objects(aggr.uri):
-            if not p in done:
-                if isinstance(o, URIRef):
-                    self.make_link(root, p, o, g)
-                elif isinstance(o, Literal):
-                    # make element for literal
-                    (ns, ename) = g.split_uri(str(p))
-                    e = SubElement(root, "{%s}%s" % (ns, ename))
-                    e.text = str(o)
+        # How to do all aggr links:
+        #done = [namespaces['rdf']['type'],
+        #        namespaces['ore']['aggregates'],
+        #        namespaces['dcterms']['creator'],
+        #        namespaces['dcterms']['contributor'],
+        #        namespaces['dc']['title'],
+        #        namespaces['dc']['description']
+        #        ]
+        #for (p, o) in g.predicate_objects(aggr.uri):
+        #    if not p in done:
+        #        if isinstance(o, URIRef):
+        #            self.make_link(root, p, o, g)
 
+        # Just: isAggregatedBy, isDescribedBy, similarTo
+        for t in aggr._ore.isAggregatedBy:
+            self.make_link(root, namespaces['ore']['isAggregatedBy'], t, g)
+            self.done_triples.append((aggr._uri_, namespaces['ore']['isAggregatedBy'], t))
+        for t in aggr._ore.isDescribedBy:
+            self.make_link(root, namespaces['ore']['isDescribedBy'], t, g)
+            self.done_triples.append((aggr._uri_, namespaces['ore']['isDescribedBy'], t))
+        for t in aggr._ore.similarTo:
+            self.make_link(root, namespaces['ore']['similarTo'], t, g)
+            self.done_triples.append((aggr._uri_, namespaces['ore']['similarTo'], t))
 
         # entry/content   //  link[@rel="alternate"]
         # Do we have a splash page?
@@ -284,22 +333,31 @@ class AtomSerializer(ORESerializer):
 
         # entry/link[@rel='self'] == URI-R
         self.make_link(root, 'self', rem._uri_, g)
-            
+
+        ### These are generated automatically in merge_graphs
+        
         # entry/published == ReM's dcterms:created
         if rem._dcterms.created:
             e = SubElement(root, 'published')
-            e.text = rem._dcterms.created[0]
-            # Can only have one!
+            c = rem._dcterms.created[0]
+            e.text = str(c)
+            self.done_triples.append((rem._uri_, namespaces['dcterms']['created'], c))
 
         # entry/updated == ReM's dcterms:modified
-        # Last time built is now!
         e = SubElement(root, 'updated')
-        e.text = now()
+        if rem._dcterms.modified:
+            c = rem._dcterms.modified[0]
+            e.text = str(c)
+            self.done_triples.append((rem._uri_, namespaces['dcterms']['modified'], c))
+        else:
+            e.text = now()
 
         # entry/rights == ReM's dc:rights
         if rem._dc.rights:
             e = SubElement(root, 'rights')
-            e.text = rem._dc.rights[0]
+            r = rem._dc.rights[0]
+            e.text = str(r)
+            self.done_triples.append((rem._uri_, namespaces['dc']['rights'], r))
 
         # entry/source/author == ReM's dcterms:creator
         if rem._dcterms.creator:
@@ -309,18 +367,20 @@ class AtomSerializer(ORESerializer):
                 e = SubElement(src, 'author')
                 agent = all_objects[who]
                 self.make_agent(e, agent)
+                self.done_triples.append((rem._uri_, namespaces['dcterms']['creator'], agent._uri_))
 
         # Remove aggregation, resource map props already done
         # All of agg res needs to be done
 
         for (r, p) in aggr.resources:
             self.make_link(root, namespaces['ore']['aggregates'], r.uri, g)
+            self.done_triples.append((aggr._uri_, namespaces['ore']['aggregates'], r._uri_))
 
-            # Now AtomTriples RDF
-            # <at:md subject="URI-X">    --- not per spec at moment
-            #   <ns:elem>data</ns:elem>
-            # </at:md>
+        # Now create ore:triples
+        # and populate with rdf/xml
 
+        trips = SubElement(root, '{%s}triples' % namespaces['ore'])
+        self.generate_rdf(trips, g)
 
         data = etree.tostring(root, pretty_print=True)
         #data = data.replace('\n', '')
