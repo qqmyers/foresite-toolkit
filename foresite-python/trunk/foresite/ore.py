@@ -188,6 +188,7 @@ class Aggregation(OREResource):
         self._resources_ = []
         self._resourceMaps_ = []
         self._fullGraph_ = None
+        self._generateProxies_ = False
         self.type = namespaces['ore']['Aggregation']
         at = ArbitraryResource(namespaces['ore']['Aggregation'])
         at.label = "Aggregation"
@@ -215,10 +216,13 @@ class Aggregation(OREResource):
             if x[0] == res:
                 raise KeyError('Aggregation %s already aggregates %s' % (self.uri, res.uri))
         self.aggregates = res.uri
-        if not proxy:
-            uri = gen_proxy_uri(res, self)
-            proxy = Proxy(uri)
-            proxy.set_forIn(res, self)
+        if proxy or self.generateProxies:
+            if not proxy:
+                uri = gen_proxy_uri(res, self)
+                proxy = Proxy(uri)
+                proxy.set_forIn(res, self)
+        else:
+            proxy = None
         self._resources_.append((res, proxy))
         res.on_add(self, proxy)
 

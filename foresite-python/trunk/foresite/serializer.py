@@ -58,7 +58,8 @@ class ORESerializer(object):
             
         for (res, proxy) in tosrlz:
             g += res._graph_
-            g += proxy._graph_
+            if proxy:
+                g += proxy._graph_
             for at in res._triples_:
                 g += at._graph_
             for c in res._agents_:
@@ -275,7 +276,7 @@ class AtomSerializer(ORESerializer):
         altDone = 0
         atypes = aggr._rdf._type
         possAlts = []
-        for (p, r) in aggr.resources:
+        for (r, p) in aggr.resources:
             mytypes = r._rdf.type
             if namespaces['eurepo']['humanStartPage'] in mytypes:
                 altDone = 1
@@ -293,7 +294,11 @@ class AtomSerializer(ORESerializer):
             # look through resource maps for HTML/XHTML
             # eg an RDFa enabled splash page
             for orm in aggr._ore.isDescribedBy:
-                rem2 = all_objects[orm]
+                try:
+                    rem2 = all_objects[orm]
+                except KeyError:
+                    # just a link
+                    continue
                 found = 0
                 for f in rem2._dc.format:
                     if str(f) == "text/html":
