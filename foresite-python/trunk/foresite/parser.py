@@ -290,7 +290,6 @@ class AtomParser(OREParser):
         for rauth in root.xpath('/atom:entry/atom:source/atom:contributor', namespaces=namespaces):
             self.handle_person(rauth, rem, 'contributor')
 
-        print all_objects
         for rdf in root.xpath('/atom:entry/ore:triples/rdf:Description', namespaces=namespaces):
             about = URIRef(rdf.attrib['{%s}about' % namespaces['rdf']])
             if about in all_objects:
