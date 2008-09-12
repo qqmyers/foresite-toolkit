@@ -66,7 +66,8 @@ namespaces = {'ore' : Namespace('http://www.openarchives.org/ore/terms/'),
               'swetodblp' : Namespace('http://lsdis.cs.uga.edu/projects/semdis/opus#'),
               'skos' : Namespace('http://www.w3.org/2004/02/skos/core#'),
               'eurepo' : Namespace('info:eu-repo/semantics/'),
-              'at' : Namespace('http://purl.org/syndication/atomtriples/1'),
+              'at' : Namespace('http://purl.org/syndication/atomtriples/1/'),
+              'iana' : Namespace('http://www.iana.org/assignments/relation/'), 
               '' : myNamespace
               }
 
@@ -84,11 +85,12 @@ elements = {
     'rdf' : ['type'],
     'rdfs' : ['seeAlso', 'label', 'isDefinedBy'],
     'mesur' : ['hasAccess', 'hasAffiliation', 'hasIssue', 'hasVolume', 'used', 'usedBy'],
-    'skos' : ['prefLabel', 'inScheme', 'broader', 'narrower', 'related', 'Concept', 'ConceptScheme']
+    'skos' : ['prefLabel', 'inScheme', 'broader', 'narrower', 'related', 'Concept', 'ConceptScheme'],
+    'iana' : ['alternate', 'current' ,'enclosure', 'edit', 'edit-media', 'first', 'last',  'next', 'next-archive', 'previous', 'payment', 'prev-archive', 'related', 'replies', 'service', 'via']  # -self, -license
     }
 
 ### The order in which to search the above hash
-namespaceSearchOrder = ['ore', 'dc', 'dcterms', 'foaf', 'rdf', 'rdfs', 'orex', 'owl', 'mesur', 'skos']
+namespaceSearchOrder = ['ore', 'dc', 'dcterms', 'foaf', 'rdf', 'rdfs', 'orex', 'owl', 'mesur', 'skos', 'iana']
 internalPredicates = [namespaces['orex']['isAuthoritativeFor'],
                       namespaces['orex']['page'],
                       ]

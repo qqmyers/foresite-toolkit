@@ -1,6 +1,7 @@
 
 import re
 from ore import *
+from foresite import libraryName, libraryUri, libraryVersion
 from utils import namespaces, OreException, unconnectedAction, pageSize, gen_uuid
 from rdflib import URIRef, BNode, Literal, plugin, syntax
 from lxml import etree
@@ -29,8 +30,7 @@ class ORESerializer(object):
 
     def merge_graphs(self, rem, page=-1):
         g = Graph()
-        if not list(rem._graph_.objects(rem._uri_, namespaces['dcterms']['creator'])):
-            rem.add_agent(libraryAgent, 'creator')
+        # Put in some sort of recognition of library?
         n = now()
         if not rem.created:
             rem._dcterms.created = n
@@ -153,9 +153,19 @@ class AtomSerializer(ORESerializer):
         if not isinstance(agent._uri_, BNode):
             n = SubElement(parent, 'uri')
             n.text = str(agent._uri_)
+            
+        #if agent._foaf.page:
+        #    n = SubElement(parent, 'email')
+        #    fp = agent._foaf.page[0]
+        #    self.done_triples.append((agent._uri_, namespaces['foaf']['mbox'], fp))
+        #    n.text = fp
 
 
     def make_link(self, parent, rel, t, g):
+
+        iana = str(namespaces['iana'])
+        if rel.startswith(iana):
+            rel = rel[len(iana):]
         e = SubElement(parent, 'link', rel=rel, href=str(t))
         fmts = list(g.objects(t, namespaces['dc']['format']))
         if fmts:
@@ -186,7 +196,9 @@ class AtomSerializer(ORESerializer):
         g = self.merge_graphs(rem)
         
         #namespaces[''] = namespaces['atom']
-        del namespaces[u'']
+        try:
+            del namespaces[u'']
+        except: pass
         root = Element("entry", nsmap=namespaces)
         namespaces[''] = myNamespace
 
@@ -223,6 +235,15 @@ class AtomSerializer(ORESerializer):
             self.make_agent(e, agent)
             self.done_triples.append((aggr._uri_, namespaces['dcterms']['contributor'], agent._uri_))
 
+
+        # entry/category[@scheme="(magic)"][@term="(datetime)"]        
+        for t in aggr._dcterms.created:
+            e = SubElement(root, 'category', term=str(t),
+                           scheme="http://www.openarchives.org/ore/terms/datetime/created")   
+        for t in aggr._dcterms.modified:
+            e = SubElement(root, 'category', term=str(t),
+                           scheme="http://www.openarchives.org/ore/terms/datetime/modified")
+        
         # entry/category == Aggr's rdf:type
         for t in aggr._rdf.type:
             e = SubElement(root, 'category', term=str(t))
@@ -239,6 +260,7 @@ class AtomSerializer(ORESerializer):
             except:
                 pass
             self.done_triples.append((aggr._uri_, namespaces['rdf']['type'], t))
+
         # entry/summary
         if aggr._dc.description:
             e = SubElement(root, 'summary')
@@ -246,31 +268,20 @@ class AtomSerializer(ORESerializer):
             e.text = str(desc)
             self.done_triples.append((aggr._uri_, namespaces['dc']['description'], desc))
 
-        # How to do all aggr links:
-        #done = [namespaces['rdf']['type'],
-        #        namespaces['ore']['aggregates'],
-        #        namespaces['dcterms']['creator'],
-        #        namespaces['dcterms']['contributor'],
-        #        namespaces['dc']['title'],
-        #        namespaces['dc']['description']
-        #        ]
-        #for (p, o) in g.predicate_objects(aggr.uri):
-        #    if not p in done:
-        #        if isinstance(o, URIRef):
-        #            self.make_link(root, p, o, g)
-        #            add to done triples?
+        # All aggr links:
+        done = [namespaces['rdf']['type'],
+                namespaces['ore']['aggregates'],
+                namespaces['dcterms']['creator'],
+                namespaces['dcterms']['contributor'],
+                namespaces['dc']['title'],
+                namespaces['dc']['description']
+                ]
+        for (p, o) in g.predicate_objects(aggr.uri):
+            if not p in done:
+                if isinstance(o, URIRef):
+                    self.make_link(root, p, o, g)
+                    self.done_triples.append((aggr._uri_, p, o))
         
-        # Just: isAggregatedBy, isDescribedBy, similarTo
-        for t in aggr._ore.isAggregatedBy:
-            self.make_link(root, namespaces['ore']['isAggregatedBy'], t, g)
-            self.done_triples.append((aggr._uri_, namespaces['ore']['isAggregatedBy'], t))
-        for t in aggr._ore.isDescribedBy:
-            self.make_link(root, namespaces['ore']['isDescribedBy'], t, g)
-            self.done_triples.append((aggr._uri_, namespaces['ore']['isDescribedBy'], t))
-        for t in aggr._ore.similarTo:
-            self.make_link(root, namespaces['ore']['similarTo'], t, g)
-            self.done_triples.append((aggr._uri_, namespaces['ore']['similarTo'], t))
-
         # entry/content   //  link[@rel="alternate"]
         # Do we have a splash page?
         altDone = 0
@@ -330,7 +341,7 @@ class AtomSerializer(ORESerializer):
 
         # entry/link[@rel='self'] == URI-R
         self.make_link(root, 'self', rem._uri_, g)
-        # entry/link[@rel='???'] == URI-A
+        # entry/link[@rel='about'] == URI-A
         self.make_link(root, 'about', aggr._uri_, g)
         
         ### These are generated automatically in merge_graphs
@@ -358,6 +369,7 @@ class AtomSerializer(ORESerializer):
             e.text = str(r)
             self.done_triples.append((rem._uri_, namespaces['dc']['rights'], r))
 
+
         # entry/source/author == ReM's dcterms:creator
         if rem._dcterms.creator:
             # Should at least be our generator! (right?)
@@ -367,6 +379,14 @@ class AtomSerializer(ORESerializer):
                 agent = all_objects[who]
                 self.make_agent(e, agent)
                 self.done_triples.append((rem._uri_, namespaces['dcterms']['creator'], agent._uri_))
+            for who in rem._dcterms.contributor:
+                e = SubElement(src, 'contributor')
+                agent = all_objects[who]
+                self.make_agent(e, agent)
+                self.done_triples.append((rem._uri_, namespaces['dcterms']['contributor'], agent._uri_))
+            e = SubElement(src, 'generator', uri=str(libraryUri), version=str(libraryVersion))
+            e.text = str(libraryName)
+
 
         # Remove aggregation, resource map props already done
         # All of agg res needs to be done

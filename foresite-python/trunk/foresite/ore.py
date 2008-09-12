@@ -371,9 +371,6 @@ class Agent(OREResource):
                 uri = BNode()
         OREResource.__init__(self, uri)
 
-libraryAgent = Agent('http://foresite.cheshire3.org/Agent')
-libraryAgent.name = "Foresite Toolkit (Python)"
-libraryAgent.mbox = "foresite@googlegroups.com"
 
 class AggregatedResource(OREResource):
     # Convenience class for OREResource

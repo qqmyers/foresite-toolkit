@@ -103,6 +103,207 @@ class RdfLibParser(OREParser):
         
 
 class AtomParser(OREParser):
+    # 1.0's entry style atom ReM
+
+    def handle_person(self, elem, what, type):
+        name = elem.xpath('atom:name/text()', namespaces=namespaces)
+        mbox = elem.xpath('atom:email/text()', namespaces=namespaces)
+        uri = elem.xpath('atom:uri/text()', namespaces=namespaces)
+
+        if uri:
+            agent = Agent(uri[0])
+        else:
+            agent = Agent()
+
+        if name:
+            agent.name = name[0]
+        if mbox:
+            mb = mbox[0]
+            if mb[:7] != "mailto:":
+                mb = "mailto:%s" % mb
+            agent.mbox = mb
+        what.add_agent(agent, type)
+
+    def handle_category(self, elem, what):
+        uri = elem.attrib['term']
+        scheme = elem.attrib.get('scheme', '')
+        label = elem.attrib.get('label', '')
+
+        if scheme[:47] == "http://www.openarchives.org/ore/terms/datetime/":
+            # magic, ignore
+            return
+
+        what._rdf.type = URIRef(uri)
+        if scheme or label:
+            t = ArbitraryResource(uri)
+            if label:
+                t._rdfs.label = label
+            if scheme:
+                t._rdfs.isDefinedBy = scheme
+        what.add_triple(t)
+        
+    def handle_link(self, elem, what):
+        type = elem.attrib['rel']
+
+        if type in ['self', 'license']:
+            # already handled
+            return
+
+        uri = elem.attrib['href']
+        format = elem.attrib.get('type', '')
+        lang = elem.attrib.get('hreflang', '')
+        title = elem.attrib.get('title', '')
+        extent = elem.attrib.get('length', '')
+
+        # links only apply to aggregations now
+        # and can be anything
+
+        if type == str(namespaces['ore']['aggregates']):
+            # Build Aggregated Resource
+            t = AggregatedResource(uri)
+            what.aggregates = t._uri_
+            what._resources_.append((t, None))
+            t._aggregations_.append((what, None))
+            # in RDF, if proxy check for AggRes
+        else:
+            if type in elements['iana']:
+                pred = namespaces['iana'][type]
+            else:
+                pred = URIRef(type)
+            # direct graph manipulation rather than try to split
+            what.graph.add((what._uri_, pred, URIRef(uri)))
+            
+            if format or lang or title or extent:
+                t = ArbitraryResource(uri)
+
+        if format or lang or title or extent:
+            if format:
+                t._dc.format = format
+            if lang:
+                t._dc.language = lang
+            if title:
+                t._dc.title = title
+            if extent:
+                t._dc.extent = extent
+
+            if isinstance(t, ArbitraryResource):
+                what.add_triple(t)
+
+
+    def handle_rdf(self, elem, what):
+        # Create AT for @about
+        uri_at = elem.attrib['{%s}about' % namespaces['rdf']]
+        if uri_at == str(what.uri):
+            at = what
+        elif elem.xpath('ore:proxyFor', namespaces=namespaces):
+            # proxy
+            at = Proxy(uri_at)
+        else:
+            at = ArbitraryResource(uri_at)
+            what.add_triple(at)
+        for kid in elem:
+            # set attribute on at from kid
+            full = kid.tag  # {ns}elem
+            match = namespaceElemRe.search(full)
+            if match:
+                name = match.groups()[1]
+            else:
+                name = full
+            val = kid.text
+            if not val:
+                # look in @rdf:resource
+                try:
+                    val = kid.attrib['{%s}resource' % namespaces['rdf']]
+                    val = URIRef(val)
+                except:
+                    print "NO MATCH FOR %s" % etree.tostring(kid)
+                    continue                
+            setattr(at, name, val)
+        if isinstance(at, Proxy):
+            # try to update proxyIn and proxyFor
+            try:
+                aggr = all_objects[at._ore.proxyIn[0]]
+                res = all_objects[at._ore.proxyFor[0]]
+                aggr._resources_.remove((res, None))
+                aggr._resources_.append((res, at))
+                res._aggregations_.remove((aggr, None))
+                res._aggregations_.append((aggr, at))
+                at._resource_ = res
+                at._aggregation_ = aggr                                        
+            except KeyError:
+                # third party proxy
+                pass
+                
+    def parse(self, doc):
+        root = etree.fromstring(doc.data)
+        self.curr_root = root
+        graph = Graph()
+        # first construct aggr and rem
+
+        try:
+            del namespaces['']
+        except:
+            pass
+        uri_a = root.xpath("/atom:entry/atom:link[@rel='about']/@href", namespaces=namespaces)
+        uri_r = root.xpath("/atom:entry/atom:link[@rel='self']/@href", namespaces=namespaces)
+
+        rem = ResourceMap(uri_r[0])
+        aggr = Aggregation(uri_a[0])
+        rem.set_aggregation(aggr)
+
+        # Aggregation Info
+        title = root.xpath("/atom:entry/atom:title/text()", namespaces=namespaces)
+        aggr._dc.title = title[0]
+
+        for auth in root.xpath('/atom:entry/atom:author', namespaces=namespaces):
+            self.handle_person(auth, aggr, 'creator')
+        for auth in root.xpath('/atom:entry/atom:contributor', namespaces=namespaces):
+            self.handle_person(auth, aggr, 'contributor')
+        for cat in root.xpath('/atom:entry/atom:category', namespaces=namespaces):
+            self.handle_category(cat, aggr)
+        for link in root.xpath('/atom:entry/atom:link', namespaces=namespaces):
+            self.handle_link(link, aggr)
+
+        summary = root.xpath("/atom:entry/atom:summary/text()", namespaces=namespaces)
+        aggr._dc.description = summary[0]
+
+        # Resource Map Info
+        aid = root.xpath("/atom:entry/atom:id/text()", namespaces=namespaces)
+        at = ArbitraryResource(aid[0])
+        at._dcterms.hasVersion = rem._uri_
+        rem.add_triple(at)
+
+        updated = root.xpath("/atom:entry/atom:updated/text()", namespaces=namespaces)
+        rem._dcterms.modified = updated[0]        
+
+        published = root.xpath("/atom:entry/atom:published/text()", namespaces=namespaces)
+        rem._dcterms.created = published[0]
+        
+        rights = root.xpath("/atom:entry/atom:rights/text()", namespaces=namespaces)
+        rem._dc.rights = rights[0]
+
+        lic = root.xpath("/atom:entry/atom:link[@rel='license']/@href", namespaces=namespaces)
+        rem._dcterms.rights = URIRef(lic[0])
+
+        for rauth in root.xpath('/atom:entry/atom:source/atom:author', namespaces=namespaces):
+            self.handle_person(rauth, rem, 'creator')
+        for rauth in root.xpath('/atom:entry/atom:source/atom:contributor', namespaces=namespaces):
+            self.handle_person(rauth, rem, 'contributor')
+
+        print all_objects
+        for rdf in root.xpath('/atom:entry/ore:triples/rdf:Description', namespaces=namespaces):
+            about = URIRef(rdf.attrib['{%s}about' % namespaces['rdf']])
+            if about in all_objects:
+                self.handle_rdf(rdf, all_objects[about])
+            else:
+                self.handle_rdf(rdf, aggr)
+
+        return rem
+    
+
+
+class OldAtomParser(AtomParser):
+    # 0.9's feed style atom ReM
     remMap = {}
     aggrMap = {}
     entryMap = {}
@@ -218,6 +419,8 @@ class AtomParser(OREParser):
                 if extent:
                     t._dc.extent = extent
                 what.add_triple(t)
+    
+
 
     def handle_rdf(self, elem, what):
         # Create AT for @about
