@@ -2,7 +2,7 @@
 import re
 from ore import *
 from foresite import libraryName, libraryUri, libraryVersion
-from utils import namespaces, OreException, unconnectedAction, pageSize, gen_uuid
+from utils import namespaces, OreException, unconnectedAction, pageSize, gen_uuid, build_html_atom_content
 from rdflib import URIRef, BNode, Literal, plugin, syntax
 from lxml import etree
 from lxml.etree import Element, SubElement
@@ -262,11 +262,16 @@ class AtomSerializer(ORESerializer):
             self.done_triples.append((aggr._uri_, namespaces['rdf']['type'], t))
 
         # entry/summary
+        desc = ""
         if aggr._dc.description:
-            e = SubElement(root, 'summary')
             desc = aggr._dc.description[0]
-            e.text = str(desc)
             self.done_triples.append((aggr._uri_, namespaces['dc']['description'], desc))
+        elif aggr._dcterms.abstract:
+            desc = aggr._dcterm.abstract[0]
+            self.done_triples.append((aggr._uri_, namespaces['dcterms']['abstract'], desc))
+        if desc:
+            e = SubElement(root, 'summary')
+            e.text = str(desc)
 
         # All aggr links:
         done = [namespaces['rdf']['type'],
@@ -329,7 +334,7 @@ class AtomSerializer(ORESerializer):
             self.make_link(root, 'alternate', possAlts[0], g)
             altDone = 1
 
-        if not altDone:
+        if not altDone and build_html_atom_content:
             e = SubElement(root, 'content')
             e.set('type', 'html')
             # make some representative html

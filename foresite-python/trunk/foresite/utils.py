@@ -29,6 +29,8 @@ pageSize = 10
 atomXsltUri = ""
 # atomXsltUri = "http://www.oreproxy.org/alt?what=%s"
 
+build_html_atom_content = False
+
 def gen_proxy_uuid(res, aggr):
     u = gen_uuid()
     return "urn:uuid:%s" % u
