@@ -2,7 +2,8 @@
 import re
 from ore import *
 from foresite import libraryName, libraryUri, libraryVersion
-from utils import namespaces, OreException, unconnectedAction, pageSize, gen_uuid, build_html_atom_content
+from utils import namespaces, OreException, unconnectedAction, pageSize
+from utils import gen_uuid, generateAtomContent
 from rdflib import URIRef, BNode, Literal, plugin, syntax
 from lxml import etree
 from lxml.etree import Element, SubElement
@@ -84,6 +85,7 @@ class ORESerializer(object):
             return graph
         g = Graph()
         all_nodes = list(graph.all_nodes())
+        all_nodes = filter(lambda y: not isinstance(y, Literal), all_nodes)
         discovered = {}
         visiting = [uri]
         while visiting:
@@ -92,11 +94,11 @@ class ORESerializer(object):
                 discovered[x] = 1
             for (p, new_x) in graph.predicate_objects(subject=x):
                 g.add((x,p,new_x))
-                if isinstance(new_x, URIRef) and not discovered.has_key(new_x) and not new_x in visiting:
+                if (isinstance(new_x, URIRef) or isinstance(new_x, BNode)) and not discovered.has_key(new_x) and not new_x in visiting:
                     visiting.append(new_x)
             for (new_x, p) in graph.subject_predicates(object=x):
                 g.add((new_x,p,x))
-                if isinstance(new_x, URIRef) and not discovered.has_key(new_x) and not new_x in visiting:
+                if (isinstance(new_x, URIRef) or isinstance(new_x, BNode)) and not discovered.has_key(new_x) and not new_x in visiting:
                     visiting.append(new_x)
         if len(discovered) != len(all_nodes):
             if unconnectedAction == 'warn':
@@ -262,16 +264,11 @@ class AtomSerializer(ORESerializer):
             self.done_triples.append((aggr._uri_, namespaces['rdf']['type'], t))
 
         # entry/summary
-        desc = ""
         if aggr._dc.description:
-            desc = aggr._dc.description[0]
-            self.done_triples.append((aggr._uri_, namespaces['dc']['description'], desc))
-        elif aggr._dcterms.abstract:
-            desc = aggr._dcterm.abstract[0]
-            self.done_triples.append((aggr._uri_, namespaces['dcterms']['abstract'], desc))
-        if desc:
             e = SubElement(root, 'summary')
+            desc = aggr._dc.description[0]
             e.text = str(desc)
+            self.done_triples.append((aggr._uri_, namespaces['dc']['description'], desc))
 
         # All aggr links:
         done = [namespaces['rdf']['type'],

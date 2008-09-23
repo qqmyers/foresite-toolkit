@@ -85,10 +85,9 @@ class RDFaSerializer(Serializer):
                        (indent, qname, escape(object), attributes))
 
         else:
-            if isinstance(object, BNode):
-                self.write('%s<%s rdf:nodeID="%s"/>\n' %
-                      (indent, qname, object))
+            if isinstance(object, URIRef):
+                href = quoteattr(self.relativize(object))
             else:
-                self.write('%s<a rel="%s" href=%s></a>\n' %
-                      (indent, qname, quoteattr(self.relativize(object))))
-
+                # BNode
+                href= '"[%s]"' % object.n3()                
+            self.write('%s<a rel="%s" href=%s></a>\n' % (indent, qname, href))
