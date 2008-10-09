@@ -22,9 +22,17 @@ class ORESerializer(object):
                      'xml' : 'application/rdf+xml',
                      'nt' : 'text/plain',
                      'n3' : 'text/rdf+n3',
-                     'turtle' : 'application/turtle',
+                     'turtle' : 'application/x-turtle',
                      'pretty-xml' : 'application/rdf+xml'
                      }
+        self.extensions = {'atom': 'atom',
+                           'rdfa' : 'xhtml',
+                           'xml' : 'xml',
+                           'nt' : 'nt',
+                           'n3' : 'n3',
+                           'turtle' : 'ttl',
+                           'pretty-xml' : 'pretty.xml'
+                           }        
         self.format = format
         self.public = public
         self.mimeType = mimetypes.get(format, '')
@@ -152,15 +160,18 @@ class AtomSerializer(ORESerializer):
             if mb[:7] == "mailto:":
                 mb = mb[7:]
             n.text = mb            
-        if not isinstance(agent._uri_, BNode):
-            n = SubElement(parent, 'uri')
-            n.text = str(agent._uri_)
+
+        # There's currently nowhere for URI to go!
+        #if not isinstance(agent._uri_, BNode):
+        #    n = SubElement(parent, 'uri')
+        #    n.text = str(agent._uri_)
             
-        #if agent._foaf.page:
-        #    n = SubElement(parent, 'email')
-        #    fp = agent._foaf.page[0]
-        #    self.done_triples.append((agent._uri_, namespaces['foaf']['mbox'], fp))
-        #    n.text = fp
+        # Silly, but it's what the spec says...
+        if agent._foaf.page:
+            n = SubElement(parent, 'uri')
+            fp = agent._foaf.page[0]
+            self.done_triples.append((agent._uri_, namespaces['foaf']['page'], fp))
+            n.text = fp
 
 
     def make_link(self, parent, rel, t, g):
@@ -236,7 +247,6 @@ class AtomSerializer(ORESerializer):
             agent = all_objects[bn]
             self.make_agent(e, agent)
             self.done_triples.append((aggr._uri_, namespaces['dcterms']['contributor'], agent._uri_))
-
 
         # entry/category[@scheme="(magic)"][@term="(datetime)"]        
         for t in aggr._dcterms.created:
@@ -335,6 +345,7 @@ class AtomSerializer(ORESerializer):
             e = SubElement(root, 'content')
             e.set('type', 'html')
             # make some representative html
+            # this can get VERY LONG so default to not doing this
             html = ['<ul>']
             for (r, p) in aggr.resources:
                 html.append('<li><a href="%s">%s</a></li>' % (r.uri, r.title[0]))
