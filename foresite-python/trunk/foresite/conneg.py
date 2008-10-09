@@ -1,7 +1,6 @@
-#!/home/cheshire/install/bin/python -i
 
-skip = 1
 def skipws(next):
+    skip = 1
     if not skip:
         return next
     else:
@@ -125,10 +124,15 @@ class MimeType(object):
         self.qval = 1.0
 
     def __str__(self):
-        l = [('q', self.qval)]
-        l.extend(self.params.items())        
-        return self.mimetype1 + "/" + self.mimetype2 + ";" + ";".join(["%s=%s" % x for x in l])
-
+        #l = [('q', self.qval)]
+        #l.extend(self.params.items())        
+        # Actually, most likely Don't want to serialize the qval
+        l = self.params.items()
+        if l:            
+            return self.mimetype1 + "/" + self.mimetype2 + ";" + ";".join(["%s=%s" % x for x in l])
+        else:
+            return self.mimetype1 + "/" + self.mimetype2
+            
     def __repr__(self):
         return "<MimeType: %s>" % self
 
@@ -224,18 +228,16 @@ def best(client, server):
     return None
         
         
-#ml = MiniLex("audio/*; q=0.2, audio/basic")
-#ml = MiniLex("text/*, text/html, text/html;level=1, */*")
-ml = MiniLex("text/*;q=0.3, text/html;q=0.7, text/html;level=1, text/html;level=2;q=0.4, */*;q=0.2")
+if __name__ == '__main__':
+    ml = MiniLex("text/*;q=0.3, text/html;q=0.7, text/html;level=1, text/html;level=2;q=0.4, */*;q=0.2")
+    p = Parser(ml)
+    mts = p.process()
+    mts.sort(key=lambda x: x.sort2(), reverse=True)
+    mts.sort(key=lambda x: x.qval, reverse=True)
 
-p = Parser(ml)
-mts = p.process()
-mts.sort(key=lambda x: x.sort2(), reverse=True)
-mts.sort(key=lambda x: x.qval, reverse=True)
+    ml2 = MiniLex("text/xhtml+xml, text/xml, application/atom+xml, text/html;level=2")
+    p2 = Parser(ml2)
+    mts2 = p2.process()
 
-
-ml2 = MiniLex("text/xhtml+xml, text/xml, application/atom+xml, text/html;level=2")
-p2 = Parser(ml2)
-mts2 = p2.process()
-
-b = best(mts, mts2)
+    b = best(mts, mts2)
+    print b
