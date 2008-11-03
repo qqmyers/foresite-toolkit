@@ -46,13 +46,16 @@ class RdfLibParser(OREParser):
             res = AggregatedResource(uri_ar)
             things[uri_ar] = res
             proxy = list(graph.query("PREFIX ore: <http://www.openarchives.org/ore/terms/> SELECT ?a WHERE {?a ore:proxyFor <%s> .}" % uri_ar ))
-            uri_p = proxy[0][0]
-            p = Proxy(uri_p)
-            p.set_forIn(res, aggr)
-            things[uri_p] = p
-            aggr.add_resource(res, p)
+            if proxy:
+                uri_p = proxy[0][0]
+                p = Proxy(uri_p)
+                p.set_forIn(res, aggr)
+                things[uri_p] = p
+                aggr.add_resource(res, p)
+                self.set_fields(p, graph)
+            else:
+                aggr.add_resource(res, None)
             self.set_fields(res, graph)
-            self.set_fields(p, graph)
 
         allThings = things.copy()
 

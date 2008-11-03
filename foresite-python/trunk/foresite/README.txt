@@ -64,13 +64,13 @@ And fetch the serialisation.
 
     >>> remdoc = a.get_serialization()
     >>> print remdoc.data
-    <feed ...
+    <entry ...
 
 Or, equivalently:
 
     >>> remdoc = rem.get_serialization()
     >>> print remdoc.data
-    <feed ...
+    <entry ...
 
 Resource Maps can be created by hand:
 
@@ -91,7 +91,7 @@ Possible values for RdfLibSerializer:  rdf (rdf/xml), pretty-xml (pretty rdf/xml
 Parsing existing Resource Maps.
 The argument to ReMDocument can be a filename or a URL.
 
-    >>> remdoc = ReMDocument("http://www.openarchives.org/ore/0.9/atom-examples/atom_dlib_maxi.atom")
+    >>> remdoc = ReMDocument("http://www.openarchives.org/ore/1.0/atom-examples/atom_arXiv_maxi.atom")
     >>> ap = AtomParser()
     >>> rem = ap.parse(remdoc)
     >>> aggr = rem.aggregation
