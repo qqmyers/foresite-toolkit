@@ -244,7 +244,7 @@ class AtomParser(OREParser):
             del namespaces['']
         except:
             pass
-        uri_a = root.xpath("/atom:entry/atom:link[@rel='about']/@href", namespaces=namespaces)
+        uri_a = root.xpath("/atom:entry/atom:link[@rel='http://www.openarchives.org/ore/terms/describes']/@href", namespaces=namespaces)
         uri_r = root.xpath("/atom:entry/atom:link[@rel='self']/@href", namespaces=namespaces)
 
         rem = ResourceMap(uri_r[0])

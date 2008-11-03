@@ -3,7 +3,7 @@ import re
 from ore import *
 from foresite import libraryName, libraryUri, libraryVersion
 from utils import namespaces, OreException, unconnectedAction, pageSize
-from utils import gen_uuid, generateAtomContent
+from utils import gen_uuid, build_html_atom_content
 from rdflib import URIRef, BNode, Literal, plugin, syntax
 from lxml import etree
 from lxml.etree import Element, SubElement
