@@ -1,6 +1,6 @@
 
 import os
-import urllib
+import urllib, urllib2
 from rdflib import ConjunctiveGraph, URIRef, BNode, Literal
 from utils import *
 from StringIO import StringIO
@@ -401,8 +401,14 @@ class ReMDocument(StringIO):
         else:
             # try to fetch uri
             try:
-                fh = urllib.urlopen(uri)
+                req = urllib2.Request(uri)
+                req.add_header('Accept', accept_header)
+                fh = urllib2.urlopen(req)
                 self.data = fh.read()
+                self.info = fh.info()
+                mimeType = self.info.dict.get('content-type', mimeType)
+                # we want ReM URI, not aggr, if redirected
+                self.uri = fh.geturl()
                 fh.close()
             except:
                 raise OreException('ReMDocument must either have data or filename')

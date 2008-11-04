@@ -31,6 +31,9 @@ atomXsltUri = ""
 
 build_html_atom_content = False
 
+accept_header = 'application/rdf+xml;q=1.0, application/atom+xml;q=0.9, text/rdf+n3;q=0.8'
+
+
 def gen_proxy_uuid(res, aggr):
     u = gen_uuid()
     return "urn:uuid:%s" % u

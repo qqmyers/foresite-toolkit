@@ -124,7 +124,7 @@ class RdfLibSerializer(ORESerializer):
         g = self.merge_graphs(rem, page)
         data = g.serialize(format=self.format)
         uri = str(rem._uri_)
-        rd = ReMDocument(uri, data, format=self.format)
+        rd = ReMDocument(uri, data, format=self.format, mimeType=self.mimeType)
         return rd
 
 class AtomSerializer(ORESerializer):
@@ -419,7 +419,7 @@ class AtomSerializer(ORESerializer):
         #data = self.spacesub.sub('', data)
         uri = str(rem._uri_)
 
-        return ReMDocument(uri, data)
+        return ReMDocument(uri, data, format='atom', mimeType=self.mimeType)
 
 
 
