@@ -46,16 +46,13 @@ class RdfLibParser(OREParser):
             res = AggregatedResource(uri_ar)
             things[uri_ar] = res
             proxy = list(graph.query("PREFIX ore: <http://www.openarchives.org/ore/terms/> SELECT ?a WHERE {?a ore:proxyFor <%s> .}" % uri_ar ))
-            if proxy:
-                uri_p = proxy[0][0]
-                p = Proxy(uri_p)
-                p.set_forIn(res, aggr)
-                things[uri_p] = p
-                aggr.add_resource(res, p)
-                self.set_fields(p, graph)
-            else:
-                aggr.add_resource(res, None)
+            uri_p = proxy[0][0]
+            p = Proxy(uri_p)
+            p.set_forIn(res, aggr)
+            things[uri_p] = p
+            aggr.add_resource(res, p)
             self.set_fields(res, graph)
+            self.set_fields(p, graph)
 
         allThings = things.copy()
 
@@ -268,7 +265,8 @@ class AtomParser(OREParser):
             self.handle_link(link, aggr)
 
         summary = root.xpath("/atom:entry/atom:summary/text()", namespaces=namespaces)
-        aggr._dc.description = summary[0]
+        if summary:
+            aggr._dc.description = summary[0]
 
         # Resource Map Info
         aid = root.xpath("/atom:entry/atom:id/text()", namespaces=namespaces)
@@ -277,16 +275,20 @@ class AtomParser(OREParser):
         rem.add_triple(at)
 
         updated = root.xpath("/atom:entry/atom:updated/text()", namespaces=namespaces)
-        rem._dcterms.modified = updated[0]        
+        if updated:
+            rem._dcterms.modified = updated[0]        
 
         published = root.xpath("/atom:entry/atom:published/text()", namespaces=namespaces)
-        rem._dcterms.created = published[0]
+        if published:
+            rem._dcterms.created = published[0]
         
         rights = root.xpath("/atom:entry/atom:rights/text()", namespaces=namespaces)
-        rem._dc.rights = rights[0]
+        if rights:
+            rem._dc.rights = rights[0]
 
         lic = root.xpath("/atom:entry/atom:link[@rel='license']/@href", namespaces=namespaces)
-        rem._dcterms.rights = URIRef(lic[0])
+        if lic:
+            rem._dcterms.rights = URIRef(lic[0])
 
         for rauth in root.xpath('/atom:entry/atom:source/atom:author', namespaces=namespaces):
             self.handle_person(rauth, rem, 'creator')

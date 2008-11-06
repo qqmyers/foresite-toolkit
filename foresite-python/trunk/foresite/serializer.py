@@ -208,10 +208,10 @@ class AtomSerializer(ORESerializer):
         aggr = rem._aggregation_
         g = self.merge_graphs(rem)
         
-        #namespaces[''] = namespaces['atom']
         try:
             del namespaces[u'']
         except: pass
+        namespaces[u''] = namespaces['atom']
         root = Element("entry", nsmap=namespaces)
         namespaces[''] = myNamespace
 
