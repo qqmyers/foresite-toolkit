@@ -1,8 +1,10 @@
 
 from ore import *
-from utils import namespaces
+from utils import namespaces, OreException
 from lxml import etree
+from xml.dom import minidom
 from rdflib import StringInputSource, URIRef
+
 
 
 class OREParser(object):
@@ -16,21 +18,17 @@ class RdfLibParser(OREParser):
             # assert to what's graph
             what.graph.add((what.uri, pred, obj))
 
-    
-    def parse(self, doc):
-        # parse to find graph
-        graph =  Graph()
-        data = StringInputSource(doc.data)
-        if doc.format:
-            graph.parse(data, format=doc.format)
-        else:
-            graph.parse(data)
-        
+
+    def process_graph(self, graph):
+
         # take graph and find objects, split up stuff into graph
         # Find ReM/Aggr        
         lres = list(graph.query("PREFIX ore: <%s> SELECT ?a ?b WHERE {?a ore:describes ?b .}" % namespaces['ore']))
-        uri_r = lres[0][0]
-        uri_a = lres[0][1]
+        try:
+            uri_r = lres[0][0]
+            uri_a = lres[0][1]
+        except IndexError:
+            raise OreException("Graph does not have mandatory ore:describes triple")
 
         rem = ResourceMap(uri_r)
         aggr = Aggregation(uri_a)
@@ -46,13 +44,17 @@ class RdfLibParser(OREParser):
             res = AggregatedResource(uri_ar)
             things[uri_ar] = res
             proxy = list(graph.query("PREFIX ore: <http://www.openarchives.org/ore/terms/> SELECT ?a WHERE {?a ore:proxyFor <%s> .}" % uri_ar ))
-            uri_p = proxy[0][0]
-            p = Proxy(uri_p)
-            p.set_forIn(res, aggr)
-            things[uri_p] = p
-            aggr.add_resource(res, p)
-            self.set_fields(res, graph)
-            self.set_fields(p, graph)
+            try:
+                uri_p = proxy[0][0]
+                p = Proxy(uri_p)
+                p.set_forIn(res, aggr)
+                things[uri_p] = p
+                aggr.add_resource(res, p)
+                self.set_fields(res, graph)
+                self.set_fields(p, graph)
+            except IndexError:
+                aggr.add_resource(res, None)
+                self.set_fields(res, graph)
 
         allThings = things.copy()
 
@@ -99,8 +101,40 @@ class RdfLibParser(OREParser):
                     # Input graph is not connected!
                     rem._triples_.append(ar)
 
-        return rem
+        return rem        
+
+    
+    def parse(self, doc):
+        # parse to find graph
+        graph =  Graph()
+        data = StringInputSource(doc.data)
+        if doc.format:
+            graph.parse(data, format=doc.format)
+        else:
+            graph.parse(data)
         
+        return self.process_graph(graph)
+
+
+
+try:
+    # Try to use more featureful pyRDFa parser
+    from pyRdfa import parseRDFa, Options
+    rdfaOptions = Options(warnings=False)
+    rdfaOptions.warning_graph = None
+
+    class RDFAParser(RdfLibParser):
+        def parse(self, doc):
+            root = minidom.parse(doc)
+            graph = parseRDFa(root, doc.uri, options=rdfaOptions)
+            return self.process_graph(graph)
+
+except ImportError:
+    # No pyRdfa lib, default to using rdflib's parser
+
+    class RDFAParser(RdfLibParser):
+        pass
+
 
 class AtomParser(OREParser):
     # 1.0's entry style atom ReM
@@ -244,6 +278,7 @@ class AtomParser(OREParser):
             del namespaces['']
         except:
             pass
+
         uri_a = root.xpath("/atom:entry/atom:link[@rel='http://www.openarchives.org/ore/terms/describes']/@href", namespaces=namespaces)
         uri_r = root.xpath("/atom:entry/atom:link[@rel='self']/@href", namespaces=namespaces)
 
