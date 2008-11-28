@@ -10,8 +10,12 @@ all_objects = {}
 # --- Object Class Definitions ---
 
 class Graph(ConjunctiveGraph):
-    def __init__(self):
-        ConjunctiveGraph.__init__(self)
+    def __init__(self, store=None, id=None):
+        # id *should* be aggregation URI
+        if store != None and id != None:
+            ConjunctiveGraph.__init__(self, store, id)
+        else:
+            ConjunctiveGraph.__init__(self)
         for (key,val) in namespaces.iteritems():
             self.bind(key, val)
 
