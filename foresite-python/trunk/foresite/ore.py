@@ -229,6 +229,7 @@ class Aggregation(OREResource):
             proxy = None
         self._resources_.append((res, proxy))
         res.on_add(self, proxy)
+        return proxy
 
     # List API
     def append(self, res):

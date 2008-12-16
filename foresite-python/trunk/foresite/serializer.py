@@ -191,11 +191,11 @@ class AtomSerializer(ORESerializer):
             e.set('hreflang', str(langs[0]))        
             self.done_triples.append((t, namespaces['dc']['language'], l))
             
-        exts = list(g.objects(t, namespaces['dc']['extent']))
+        exts = list(g.objects(t, namespaces['dcterms']['extent']))
         if exts:
             l = exts[0]
             e.set('length', str(l))
-            self.done_triples.append((t, namespaces['dc']['extent'], l))
+            self.done_triples.append((t, namespaces['dcterms']['extent'], l))
             
         titls = list(g.objects(t, namespaces['dc']['title']))
         if titls:
