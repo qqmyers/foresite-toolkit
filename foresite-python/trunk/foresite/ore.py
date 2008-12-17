@@ -95,9 +95,14 @@ class OREResource(object):
             nsobj = namespaces[ns]
         else:
             nsobj = self.graph.find_namespace(name)
-        if not isinstance(value, URIRef) and not isinstance(value, BNode):
-            value = Literal(value)
-        self.graph.add((self.uri, nsobj[name], value))
+
+        if value == []:
+            for val in self.graph.objects(self.uri, nsobj[name]):
+                self.graph.remove((self.uri, nsobj[name], val))
+        else:
+            if not isinstance(value, URIRef) and not isinstance(value, BNode):
+                value = Literal(value)
+            self.graph.add((self.uri, nsobj[name], value))
         return 1
 
     def get_value(self, name, ns=None):        
