@@ -40,22 +40,24 @@ class ORESerializer(object):
     def merge_graphs(self, rem, page=-1):
         g = Graph()
         # Put in some sort of recognition of library?
+
+
         n = now()
         if not rem.created:
             rem._dcterms.created = n
         rem._dcterms.modified = n
 
         g += rem._graph_
-        for at in rem._triples_:
+        for at in rem._triples_.values():
             g += at._graph_
-        for c in rem._agents_:
+        for c in rem._agents_.values():
             g += c._graph_
         
         aggr = rem._aggregation_
         g += aggr._graph_
-        for at in aggr._triples_:
+        for at in aggr._triples_.values():
             g += at._graph_
-        for c in aggr._agents_:
+        for c in aggr._agents_.values():
             g += c._graph_
 
         if page != -1:
@@ -69,9 +71,9 @@ class ORESerializer(object):
             g += res._graph_
             if proxy:
                 g += proxy._graph_
-            for at in res._triples_:
+            for at in res._triples_.values():
                 g += at._graph_
-            for c in res._agents_:
+            for c in res._agents_.values():
                 g += c._graph_
             if isinstance(res, Aggregation):
                 # don't recurse, remove aggregates                
@@ -191,11 +193,11 @@ class AtomSerializer(ORESerializer):
             e.set('hreflang', str(langs[0]))        
             self.done_triples.append((t, namespaces['dc']['language'], l))
             
-        exts = list(g.objects(t, namespaces['dcterms']['extent']))
+        exts = list(g.objects(t, namespaces['dc']['extent']))
         if exts:
             l = exts[0]
             e.set('length', str(l))
-            self.done_triples.append((t, namespaces['dcterms']['extent'], l))
+            self.done_triples.append((t, namespaces['dc']['extent'], l))
             
         titls = list(g.objects(t, namespaces['dc']['title']))
         if titls:
@@ -211,9 +213,11 @@ class AtomSerializer(ORESerializer):
         try:
             del namespaces[u'']
         except: pass
-        namespaces[u''] = namespaces['atom']
+        #namespaces[u''] = namespaces['atom']
+        if namespaces.has_key(u''):
+            del namespaces[u'']
         root = Element("entry", nsmap=namespaces)
-        namespaces[''] = myNamespace
+        # namespaces[''] = myNamespace
 
         # entry/id == tag for entry == ReM dc:identifier
         # if not exist, generate Yet Another uuid
@@ -237,14 +241,14 @@ class AtomSerializer(ORESerializer):
         # entry/author == Aggr's dcterms:creator
         for who in aggr._dcterms.creator:
             e = SubElement(root, 'author')
-            agent = all_objects[who]
+            agent = aggr._agents_[who]
             self.make_agent(e, agent)
             self.done_triples.append((aggr._uri_, namespaces['dcterms']['creator'], agent._uri_))
 
         # entry/contributor == Aggr's dcterms:contributor
         for bn in aggr._dcterms.contributor:
             e = SubElement(root, 'contributor')
-            agent = all_objects[bn]
+            agent = aggr._agents_[who]
             self.make_agent(e, agent)
             self.done_triples.append((aggr._uri_, namespaces['dcterms']['contributor'], agent._uri_))
 
@@ -313,29 +317,6 @@ class AtomSerializer(ORESerializer):
                    m in atypes:
                     possAlt.append(r.uri)
 
-        if not altDone:
-            # look through resource maps for HTML/XHTML
-            # eg an RDFa enabled splash page
-            for orm in aggr._ore.isDescribedBy:
-                try:
-                    rem2 = all_objects[orm]
-                except KeyError:
-                    # just a link
-                    continue
-                found = 0
-                for f in rem2._dc.format:
-                    if str(f) == "text/html":
-                        possAlts.append(orm)
-                        found = 1
-                if not found:
-                    # check orm ends in html
-                    if str(orm)[-5:] == ".html":
-                        possAlt.append(orm)
-                
-        if not altDone and atomXsltUri:
-            self.make_link(root, 'alternate', atomXsltUri % rem.uri, g)
-            altDone = 1
-
         if not altDone and possAlts:
             # XXX more intelligent algorithm here
             self.make_link(root, 'alternate', possAlts[0], g)
@@ -389,12 +370,12 @@ class AtomSerializer(ORESerializer):
             src = SubElement(root, 'source')
             for who in rem._dcterms.creator:
                 e = SubElement(src, 'author')
-                agent = all_objects[who]
+                agent = rem._agents_[who]
                 self.make_agent(e, agent)
                 self.done_triples.append((rem._uri_, namespaces['dcterms']['creator'], agent._uri_))
             for who in rem._dcterms.contributor:
                 e = SubElement(src, 'contributor')
-                agent = all_objects[who]
+                agent = rem._agents_[who]
                 self.make_agent(e, agent)
                 self.done_triples.append((rem._uri_, namespaces['dcterms']['contributor'], agent._uri_))
             e = SubElement(src, 'generator', uri=str(libraryUri), version=str(libraryVersion))
@@ -418,6 +399,8 @@ class AtomSerializer(ORESerializer):
         #data = data.replace('\n', '')
         #data = self.spacesub.sub('', data)
         uri = str(rem._uri_)
+
+        self.done_triples = []
 
         return ReMDocument(uri, data, format='atom', mimeType=self.mimeType)
 
@@ -445,9 +428,9 @@ class OldAtomSerializer(ORESerializer):
 
         sg = Graph()
         sg += what.graph
-        for at in what.triples:
+        for at in what.triples.values():
             sg += at.graph
-        for a in what.agents:
+        for a in what.agents.values():
             sg += a.graph
 
         for a in what.type:                
@@ -502,7 +485,7 @@ class OldAtomSerializer(ORESerializer):
                 # and add in proxy info
                 proxy = what._currProxy_
                 sg += proxy.graph
-                for a in proxy._agents_:
+                for a in proxy._agents_.values():
                     sg += a.graph
                 # remove proxyFor, proxyIn
                 for a in proxy._ore.proxyFor:
@@ -593,9 +576,10 @@ class OldAtomSerializer(ORESerializer):
         # Check entire graph is connected
         g = self.merge_graphs(rem)
         
-        namespaces[''] = namespaces['atom']
+        if namespaces.has_key(''):
+            del namespaces[u'']
         root = Element("feed", nsmap=namespaces)
-        namespaces[''] = myNamespace
+        #namespaces[''] = myNamespace
 
         ## Aggregation Info
         e = SubElement(root, 'id')
@@ -610,13 +594,13 @@ class OldAtomSerializer(ORESerializer):
             e.text = str(aggr._dc.description[0])
 
         for who in aggr._dcterms.creator:
-            e = SubElement(root, 'author')
-            agent = all_objects[who]
+            e = SubElement(root, 'author')            
+            agent = aggr._agents_[who]
             self.make_agent(e, agent)
 
         for bn in aggr._dcterms.contributor:
             e = SubElement(root, 'contributor')
-            agent = all_objects[bn]
+            agent = aggr._agents_[bn]
             self.make_agent(e, agent)
             
         for t in aggr._ore.similarTo:
@@ -660,7 +644,7 @@ class OldAtomSerializer(ORESerializer):
         if rem._dcterms.creator:
             uri = rem._dcterms.creator[0]
             e = SubElement(root, 'generator', uri=str(uri))
-            agent = all_objects[uri]
+            agent = rem._agents_[uri]
             n = agent._foaf.name[0]
             e.text = str(n)
             self.done_triples.append((uri, namespaces['foaf']['name'], n))
@@ -685,7 +669,10 @@ class OldAtomSerializer(ORESerializer):
             entry = SubElement(root, 'entry')
             
             e = SubElement(entry, 'id')
-            e.text = str(proxy.uri)
+            if proxy:
+                e.text = str(proxy.uri)
+            else:
+                e.text = "urn:uuid:%s" % gen_uuid()
             e = SubElement(entry, 'link', rel="alternate", href=str(res.uri))
             # type = dc:format
             fmt = list(g.objects(res.uri, namespaces['dc']['format']))
@@ -711,11 +698,11 @@ class OldAtomSerializer(ORESerializer):
                     pass
             for a in res._dcterms.creator:
                 e = SubElement(entry, 'author')
-                agent = all_objects[a]
+                agent = res._agents_[a]
                 self.make_agent(e, agent)
             for a in res._dcterms.contributor:
                 e = SubElement(entry, 'contributor')
-                agent = all_objects[a]
+                agent = res._agents_[a]
                 self.make_agent(e, agent)
             if res._dcterms.abstract:
                 e = SubElement(entry, 'summary')
@@ -729,11 +716,7 @@ class OldAtomSerializer(ORESerializer):
             e = SubElement(entry, 'updated')
             e.text = now()
 
-            # Put in Proxy info
-            # ORE DISCUSS:  Is updated == proxy's dcterms:modified?
-            #               Is published == proxy's dcterms:created?
-
-            if proxy._ore.lineage:
+            if proxy and proxy._ore.lineage:
                 e = SubElement(entry, 'link', rel="via", href=str(proxy._ore.lineage[0]))
             res._currProxy_ = proxy
             self.generate_rdf(entry, res)
@@ -743,5 +726,7 @@ class OldAtomSerializer(ORESerializer):
         data = data.replace('\n', '')
         data = self.spacesub.sub('', data)
         uri = str(rem._uri_)
+
+        self.done_triples = []
 
         return ReMDocument(uri, data)

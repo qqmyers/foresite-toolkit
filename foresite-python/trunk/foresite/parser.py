@@ -5,8 +5,6 @@ from lxml import etree
 from xml.dom import minidom
 from rdflib import StringInputSource, URIRef
 
-
-
 class OREParser(object):
     # Take some data and produce objects/graph
     pass
@@ -102,7 +100,6 @@ class RdfLibParser(OREParser):
                     rem._triples_.append(ar)
 
         return rem        
-
     
     def parse(self, doc):
         # parse to find graph
@@ -112,9 +109,7 @@ class RdfLibParser(OREParser):
             graph.parse(data, format=doc.format)
         else:
             graph.parse(data)
-        
         return self.process_graph(graph)
-
 
 
 try:
@@ -123,7 +118,7 @@ try:
     rdfaOptions = Options(warnings=False)
     rdfaOptions.warning_graph = None
 
-    class RDFAParser(RdfLibParser):
+    class RdfAParser(RdfLibParser):
         def parse(self, doc):
             root = minidom.parse(doc)
             graph = parseRDFa(root, doc.uri, options=rdfaOptions)
@@ -132,7 +127,7 @@ try:
 except ImportError:
     # No pyRdfa lib, default to using rdflib's parser
 
-    class RDFAParser(RdfLibParser):
+    class RdfAParser(RdfLibParser):
         pass
 
 
@@ -149,6 +144,7 @@ class AtomParser(OREParser):
         else:
             agent = Agent()
 
+        self.all_objects[agent._uri] = agent
         if name:
             agent.name = name[0]
         if mbox:
@@ -175,6 +171,7 @@ class AtomParser(OREParser):
             if scheme:
                 t._rdfs.isDefinedBy = scheme
         what.add_triple(t)
+        self.all_objects[t._uri_] = t
         
     def handle_link(self, elem, what):
         type = elem.attrib['rel']
@@ -210,6 +207,7 @@ class AtomParser(OREParser):
             if format or lang or title or extent:
                 t = ArbitraryResource(uri)
 
+        self.all_objects[t._uri_] = t
         if format or lang or title or extent:
             if format:
                 t._dc.format = format
@@ -235,6 +233,8 @@ class AtomParser(OREParser):
         else:
             at = ArbitraryResource(uri_at)
             what.add_triple(at)
+
+        self.all_objects[at._uri_] = at
         for kid in elem:
             # set attribute on at from kid
             full = kid.tag  # {ns}elem
@@ -256,8 +256,8 @@ class AtomParser(OREParser):
         if isinstance(at, Proxy):
             # try to update proxyIn and proxyFor
             try:
-                aggr = all_objects[at._ore.proxyIn[0]]
-                res = all_objects[at._ore.proxyFor[0]]
+                aggr = self.all_objects[at._ore.proxyIn[0]]
+                res = self.all_objects[at._ore.proxyFor[0]]
                 aggr._resources_.remove((res, None))
                 aggr._resources_.append((res, at))
                 res._aggregations_.remove((aggr, None))
@@ -274,6 +274,8 @@ class AtomParser(OREParser):
         graph = Graph()
         # first construct aggr and rem
 
+        self.all_objects = {}
+
         try:
             del namespaces['']
         except:
@@ -285,6 +287,9 @@ class AtomParser(OREParser):
         rem = ResourceMap(uri_r[0])
         aggr = Aggregation(uri_a[0])
         rem.set_aggregation(aggr)
+
+        self.all_objects[rem._uri_] = rem
+        self.all_objects[aggr._uri_] = aggr
 
         # Aggregation Info
         title = root.xpath("/atom:entry/atom:title/text()", namespaces=namespaces)
@@ -308,6 +313,7 @@ class AtomParser(OREParser):
         at = ArbitraryResource(aid[0])
         at._dcterms.hasVersion = rem._uri_
         rem.add_triple(at)
+        self.all_objects[at._uri_] = at
 
         updated = root.xpath("/atom:entry/atom:updated/text()", namespaces=namespaces)
         if updated:
@@ -332,10 +338,11 @@ class AtomParser(OREParser):
 
         for rdf in root.xpath('/atom:entry/ore:triples/rdf:Description', namespaces=namespaces):
             about = URIRef(rdf.attrib['{%s}about' % namespaces['rdf']])
-            if about in all_objects:
-                self.handle_rdf(rdf, all_objects[about])
+            if about in self.all_objects:
+                self.handle_rdf(rdf, self.all_objects[about])
             else:
                 self.handle_rdf(rdf, aggr)
+        self.all_objects = {}
 
         return rem
     

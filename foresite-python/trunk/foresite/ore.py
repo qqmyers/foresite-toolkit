@@ -5,8 +5,6 @@ from rdflib import ConjunctiveGraph, URIRef, BNode, Literal
 from utils import *
 from StringIO import StringIO
 
-all_objects = {}
-
 # --- Object Class Definitions ---
 
 class Graph(ConjunctiveGraph):
@@ -35,12 +33,11 @@ class Graph(ConjunctiveGraph):
         
 
 class OREResource(object):
-    # Any Resource can be aggregated
     graph = None
     uri = ""
     currNs = ""
-    agents = []
-    triples = []
+    agents = {}
+    triples = {}
     aggregations = []
 
     def __init__(self, uri):
@@ -51,10 +48,9 @@ class OREResource(object):
         else:
             self._uri_ = URIRef(uri)
         self._currNs_ = ''
-        self._agents_ = []
-        self._triples_ = []
+        self._agents_ = {}
+        self._triples_ = {}
         self._aggregations_ = []
-        all_objects[self._uri_] = self
 
     def __str__(self):
         return str(self.uri)
@@ -115,21 +111,22 @@ class OREResource(object):
             l.append(obj)
         return l
 
+
     def add_triple(self, trip):
-        self._triples_.append(trip)
+        self._triples_[trip._uri_] = trip
 
     def remove_triple(self, trip):
-        self._triples_.remove(trip)
+        del self._triples_[trip._uri_]
 
     def predicates(self):
         return list(self.graph.predicates())
 
     def add_agent(self, who, type):
-        self._agents_.append(who)
+        self._agents_[who._uri_] = who
         setattr(self, type, who._uri_)
 
     def remove_agent(self, who, type):
-        self._agents_.remove(who)
+        del self._agents_[who._uri_]
         ns = self.graph.find_namespace(type)
         self._graph_.remove((self._uri_, ns[type], who._uri_))
 
@@ -160,10 +157,7 @@ class ResourceMap(OREResource):
         self._aggregation_ = None
         self._serializer_ = None
         self.type = namespaces['ore']['ResourceMap']
-        at = ArbitraryResource(namespaces['ore']['ResourceMap'])
-        at.label = "ResourceMap"
-        at.isDefinedBy = namespaces['ore']
-        self.add_triple(at)
+        self.add_triple(rem_type)
 
     def register_serializer(self, serializer):
         # Deprecated
@@ -199,10 +193,7 @@ class Aggregation(OREResource):
         self._fullGraph_ = None
         self._generateProxies_ = False
         self.type = namespaces['ore']['Aggregation']
-        at = ArbitraryResource(namespaces['ore']['Aggregation'])
-        at.label = "Aggregation"
-        at.isDefinedBy = namespaces['ore']
-        self.add_triple(at)
+        self.add_triple(aggr_type)
 
     def __iter__(self):
         l = [x[0] for x in self._resources_]
@@ -270,17 +261,14 @@ class Aggregation(OREResource):
                 rems.append(rem)
         return rems
 
-    def get_object(self, uri):
-        return all_objects.get(uri, None)
-
     def _merge_all_graphs(self, public=1, top=1):
         # Only used for sparql query across everything, not serialization
         g = Graph()
         for rem in self.resourceMaps:
             g += rem._graph_
-            for at in rem._triples_:
+            for at in rem._triples_.values():
                 g += at._graph_
-            for c in rem._agents_:
+            for c in rem._agents_.values():
                 g += c._graph_
             if not rem.created:
                 g.add((rem._uri_, namespaces['dcterms']['created'], Literal(now())))
@@ -288,16 +276,16 @@ class Aggregation(OREResource):
 
         aggr = self
         g += aggr._graph_
-        for at in aggr._triples_:
+        for at in aggr._triples_.values():
             g += at._graph_
-        for c in aggr._agents_:
+        for c in aggr._agents_.values():
             g += c._graph_
         for (res, proxy) in aggr._resources_:
             g += res._graph_
             g += proxy._graph_
-            for at in res._triples_:
+            for at in res._triples_.values():
                 g += at._graph_
-            for c in res._agents_:
+            for c in res._agents_.values():
                 g += c._graph_
             if isinstance(res, Aggregation):
                 # include nestings recursively
@@ -425,3 +413,12 @@ class ReMDocument(StringIO):
         self.mimeType = mimeType
         self.format = format
         StringIO.__init__(self, self.data)
+
+rem_type = ArbitraryResource(namespaces['ore']['ResourceMap'])
+rem_type.label = "ResourceMap"
+rem_type.isDefinedBy = namespaces['ore']
+
+aggr_type = ArbitraryResource(namespaces['ore']['Aggregation'])
+aggr_type.label = "Aggregation"
+aggr_type.isDefinedBy = namespaces['ore']
+
