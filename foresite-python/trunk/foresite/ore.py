@@ -111,7 +111,6 @@ class OREResource(object):
             l.append(obj)
         return l
 
-
     def add_triple(self, trip):
         self._triples_[trip._uri_] = trip
 
@@ -208,6 +207,16 @@ class Aggregation(OREResource):
                 return True
         return False
 
+    def __getitem__(self, x):
+        if isinstance(x, int):
+            return self.resources[x][0]
+        if isinstance(x, str):
+            x = URIRef(x)
+        for r in self.resources:
+            if x == r[0].uri:
+                return r[0]
+        raise KeyError(x)
+
     def on_describe(self, rem):
         self._resourceMaps_.append(rem)
         
@@ -215,7 +224,7 @@ class Aggregation(OREResource):
         for x in self._resources_:
             if x[0] == res:
                 raise KeyError('Aggregation %s already aggregates %s' % (self.uri, res.uri))
-        self.aggregates = res.uri
+          self.aggregates = res.uri
         if proxy or self.generateProxies:
             if not proxy:
                 uri = gen_proxy_uri(res, self)
