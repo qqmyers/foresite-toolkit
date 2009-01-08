@@ -224,7 +224,7 @@ class Aggregation(OREResource):
         for x in self._resources_:
             if x[0] == res:
                 raise KeyError('Aggregation %s already aggregates %s' % (self.uri, res.uri))
-            self.aggregates = res.uri
+        self.aggregates = res.uri
         if proxy or self.generateProxies:
             if not proxy:
                 uri = gen_proxy_uri(res, self)
