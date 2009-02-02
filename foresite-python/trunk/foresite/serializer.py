@@ -484,20 +484,21 @@ class OldAtomSerializer(ORESerializer):
                 self.done_triples = []
                 # and add in proxy info
                 proxy = what._currProxy_
-                sg += proxy.graph
-                for a in proxy._agents_.values():
-                    sg += a.graph
-                # remove proxyFor, proxyIn
-                for a in proxy._ore.proxyFor:
-                    sg.remove((proxy.uri, namespaces['ore']['proxyFor'], a))
-                for a in proxy._ore.proxyIn:
-                    sg.remove((proxy.uri, namespaces['ore']['proxyIn'], a))
-                for a in proxy.type:                
-                    for b in sg.objects(a, namespaces['rdfs']['isDefinedBy']):
-                        sg.remove((a, namespaces['rdfs']['isDefinedBy'], b))
-                    for b in sg.objects(a, namespaces['rdfs']['label']):
-                        sg.remove((a, namespaces['rdfs']['label'], b))
-                    sg.remove((proxy.uri, namespaces['rdf']['type'], a))
+                if proxy:
+                    sg += proxy.graph
+                    for a in proxy._agents_.values():
+                        sg += a.graph
+                    # remove proxyFor, proxyIn
+                    for a in proxy._ore.proxyFor:
+                        sg.remove((proxy.uri, namespaces['ore']['proxyFor'], a))
+                    for a in proxy._ore.proxyIn:
+                        sg.remove((proxy.uri, namespaces['ore']['proxyIn'], a))
+                    for a in proxy.type:                
+                        for b in sg.objects(a, namespaces['rdfs']['isDefinedBy']):
+                            sg.remove((a, namespaces['rdfs']['isDefinedBy'], b))
+                        for b in sg.objects(a, namespaces['rdfs']['label']):
+                            sg.remove((a, namespaces['rdfs']['label'], b))
+                        sg.remove((proxy.uri, namespaces['rdf']['type'], a))
 
         elif isinstance(what, ResourceMap):
 
