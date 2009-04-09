@@ -147,7 +147,7 @@ class AtomSerializer(ORESerializer):
             parent.append(child)
 
     def make_agent(self, parent, agent):
-        n = SubElement(parent, 'name')
+        n = SubElement(parent, '{%s}name' % namespaces['atom'])
         try:
             name = agent._foaf.name[0]
             n.text = str(name)
@@ -155,7 +155,7 @@ class AtomSerializer(ORESerializer):
         except:
             pass
         if agent._foaf.mbox:
-            n = SubElement(parent, 'email')
+            n = SubElement(parent, '{%s}email' % namespaces['atom'])
             mb = agent._foaf.mbox[0]
             self.done_triples.append((agent._uri_, namespaces['foaf']['mbox'], mb))
             mb = str(mb)
@@ -170,7 +170,7 @@ class AtomSerializer(ORESerializer):
             
         # Silly, but it's what the spec says...
         if agent._foaf.page:
-            n = SubElement(parent, 'uri')
+            n = SubElement(parent, '{%s}uri' % namespaces['atom'])
             fp = agent._foaf.page[0]
             self.done_triples.append((agent._uri_, namespaces['foaf']['page'], fp))
             n.text = fp
@@ -181,7 +181,7 @@ class AtomSerializer(ORESerializer):
         iana = str(namespaces['iana'])
         if rel.startswith(iana):
             rel = rel[len(iana):]
-        e = SubElement(parent, 'link', rel=rel, href=str(t))
+        e = SubElement(parent, '{%s}link' % namespaces['atom'], rel=rel, href=str(t))
         fmts = list(g.objects(t, namespaces['dc']['format']))
         if fmts:
             f = fmts[0]
@@ -209,19 +209,13 @@ class AtomSerializer(ORESerializer):
     def serialize(self, rem, page=-1):
         aggr = rem._aggregation_
         g = self.merge_graphs(rem)
-        
-        try:
-            del namespaces[u'']
-        except: pass
-        #namespaces[u''] = namespaces['atom']
-        if namespaces.has_key(u''):
-            del namespaces[u'']
-        root = Element("entry", nsmap=namespaces)
-        # namespaces[''] = myNamespace
+
+        del namespaces['']
+        root = Element("{%s}entry" % namespaces['atom'], nsmap=namespaces)
 
         # entry/id == tag for entry == ReM dc:identifier
         # if not exist, generate Yet Another uuid
-        e = SubElement(root, 'id')
+        e = SubElement(root, '{%s}id' % namespaces['atom'])
         if rem._dc.identifier:
             dcid = rem._dc.identifier[0]
             e.text = str(dcid)
@@ -233,36 +227,36 @@ class AtomSerializer(ORESerializer):
         if not aggr._dc.title:
             raise OreException("Atom Serialisation requires title on aggregation")
         else:
-            e = SubElement(root, 'title')
+            e = SubElement(root, '{%s}title' % namespaces['atom'])
             dctit = aggr._dc.title[0]
             e.text = str(dctit)
             self.done_triples.append((aggr._uri_, namespaces['dc']['title'], dctit))
 
         # entry/author == Aggr's dcterms:creator
         for who in aggr._dcterms.creator:
-            e = SubElement(root, 'author')
+            e = SubElement(root, '{%s}author' % namespaces['atom'])
             agent = aggr._agents_[who]
             self.make_agent(e, agent)
             self.done_triples.append((aggr._uri_, namespaces['dcterms']['creator'], agent._uri_))
 
         # entry/contributor == Aggr's dcterms:contributor
         for bn in aggr._dcterms.contributor:
-            e = SubElement(root, 'contributor')
+            e = SubElement(root, '{%s}contributor' % namespaces['atom'])
             agent = aggr._agents_[who]
             self.make_agent(e, agent)
             self.done_triples.append((aggr._uri_, namespaces['dcterms']['contributor'], agent._uri_))
 
         # entry/category[@scheme="(magic)"][@term="(datetime)"]        
         for t in aggr._dcterms.created:
-            e = SubElement(root, 'category', term=str(t),
+            e = SubElement(root, '{%s}category' % namespaces['atom'], term=str(t),
                            scheme="http://www.openarchives.org/ore/terms/datetime/created")   
         for t in aggr._dcterms.modified:
-            e = SubElement(root, 'category', term=str(t),
+            e = SubElement(root, '{%s}category' % namespaces['atom'], term=str(t),
                            scheme="http://www.openarchives.org/ore/terms/datetime/modified")
         
         # entry/category == Aggr's rdf:type
         for t in aggr._rdf.type:
-            e = SubElement(root, 'category', term=str(t))
+            e = SubElement(root, '{%s}category' % namespaces['atom'], term=str(t))
             try:
                 scheme = list(g.objects(t, namespaces['rdfs']['isDefinedBy']))[0]
                 e.set('scheme', str(scheme))
@@ -279,7 +273,7 @@ class AtomSerializer(ORESerializer):
 
         # entry/summary
         if aggr._dc.description:
-            e = SubElement(root, 'summary')
+            e = SubElement(root, '{%s}summary' % namespaces['atom'])
             desc = aggr._dc.description[0]
             e.text = str(desc)
             self.done_triples.append((aggr._uri_, namespaces['dc']['description'], desc))
@@ -319,11 +313,11 @@ class AtomSerializer(ORESerializer):
 
         if not altDone and possAlts:
             # XXX more intelligent algorithm here
-            self.make_link(root, 'alternate', possAlts[0], g)
+            self.make_link(root, '{%s}alternate' % namespaces['atom'], possAlts[0], g)
             altDone = 1
 
         if not altDone and build_html_atom_content:
-            e = SubElement(root, 'content')
+            e = SubElement(root, '{%s}content' % namespaces['atom'])
             e.set('type', 'html')
             # make some representative html
             # this can get VERY LONG so default to not doing this
@@ -343,13 +337,13 @@ class AtomSerializer(ORESerializer):
         
         # entry/published == ReM's dcterms:created
         if rem._dcterms.created:
-            e = SubElement(root, 'published')
+            e = SubElement(root, '{%s}published' % namespaces['atom'])
             c = rem._dcterms.created[0]
             e.text = str(c)
             self.done_triples.append((rem._uri_, namespaces['dcterms']['created'], c))
 
         # entry/updated == ReM's dcterms:modified
-        e = SubElement(root, 'updated')
+        e = SubElement(root, '{%s}updated' % namespaces['atom'])
         if rem._dcterms.modified:
             c = rem._dcterms.modified[0]
             e.text = str(c)
@@ -359,7 +353,7 @@ class AtomSerializer(ORESerializer):
 
         # entry/rights == ReM's dc:rights
         if rem._dc.rights:
-            e = SubElement(root, 'rights')
+            e = SubElement(root, '{%s}rights' % namespaces['atom'])
             r = rem._dc.rights[0]
             e.text = str(r)
             self.done_triples.append((rem._uri_, namespaces['dc']['rights'], r))
@@ -368,18 +362,18 @@ class AtomSerializer(ORESerializer):
         # entry/source/author == ReM's dcterms:creator
         if rem._dcterms.creator:
             # Should at least be our generator! (right?)
-            src = SubElement(root, 'source')
+            src = SubElement(root, '{%s}source' % namespaces['atom'])
             for who in rem._dcterms.creator:
-                e = SubElement(src, 'author')
+                e = SubElement(src, '{%s}author' % namespaces['atom'])
                 agent = rem._agents_[who]
                 self.make_agent(e, agent)
                 self.done_triples.append((rem._uri_, namespaces['dcterms']['creator'], agent._uri_))
             for who in rem._dcterms.contributor:
-                e = SubElement(src, 'contributor')
+                e = SubElement(src, '{%s}contributor' % namespaces['atom'])
                 agent = rem._agents_[who]
                 self.make_agent(e, agent)
                 self.done_triples.append((rem._uri_, namespaces['dcterms']['contributor'], agent._uri_))
-            e = SubElement(src, 'generator', uri=str(libraryUri), version=str(libraryVersion))
+            e = SubElement(src, '{%s}generator' % namespaces['atom'], uri=str(libraryUri), version=str(libraryVersion))
             e.text = str(libraryName)
 
 

@@ -15,10 +15,10 @@ assignAgentUri = False
 proxyType = 'proxy'
 # proxyType = 'UUID'
 
-### What to do when encounter unconnected graph:
+### What to do when encountering an unconnected graph:
 
-#unconnectedAction = 'ignore'  # produce unconnected graph
-unconnectedAction = 'drop'  # drop any unconnected triples silently
+unconnectedAction = 'ignore'  # produce unconnected graph
+#unconnectedAction = 'drop'  # drop any unconnected triples silently
 #unconnectedAction = 'warn' # print a warning
 #unconnectedAction = 'raise' # raise an Exception
 
