@@ -337,6 +337,7 @@ class AtomSerializer(ORESerializer):
         self.make_link(root, 'self', rem._uri_, g)
         # entry/link[@rel='ore:describes'] == URI-A
         self.make_link(root, namespaces['ore']['describes'], aggr._uri_, g)
+
         
         ### These are generated automatically in merge_graphs
         

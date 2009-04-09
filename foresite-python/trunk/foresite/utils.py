@@ -30,7 +30,6 @@ atomXsltUri = ""
 # atomXsltUri = "http://www.oreproxy.org/alt?what=%s"
 
 build_html_atom_content = False
-
 accept_header = 'application/rdf+xml;q=1.0, application/atom+xml;q=0.9, text/rdf+n3;q=0.8'
 
 

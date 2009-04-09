@@ -65,13 +65,12 @@ class RdfLibParser(OREParser):
             for (subj, pred) in graph.subject_predicates(URIRef(a_uri)):
                 if things.has_key(subj):
                     # direct manipulation, as will have already added predicate in set_fields
-                    things[subj]._agents_.append(a)
+                    what = things[subj]
+                    what._agents_[a_uri] = a
 
         # rem and aggr will have default rdf:type triples already
-        for at in rem.triples:
-            allThings[at.uri] = at
-        for at in aggr.triples:
-            allThings[at.uri] = at            
+        allThings.update(rem.triples)
+        allThings.update(aggr.triples)
 
         for subj in graph.subjects():
             if not allThings.has_key(subj):
@@ -90,14 +89,14 @@ class RdfLibParser(OREParser):
                 while tocheck:
                     subsubj = tocheck.pop(0)[0]
                     if things.has_key(subsubj):
-                        things[subsubj]._triples_.append(ar)
+                        things[subsubj]._triples_[ar.uri] = ar
                         found = 1
                         break
                     else:
                         tocheck.extend(graph.subject_predicates(subsubj))
                 if not found:
                     # Input graph is not connected!
-                    rem._triples_.append(ar)
+                    rem._triples_[ar.uri] = ar
 
         return rem        
     

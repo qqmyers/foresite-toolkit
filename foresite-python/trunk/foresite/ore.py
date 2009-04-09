@@ -291,7 +291,8 @@ class Aggregation(OREResource):
             g += c._graph_
         for (res, proxy) in aggr._resources_:
             g += res._graph_
-            g += proxy._graph_
+            if proxy:
+                g += proxy._graph_
             for at in res._triples_.values():
                 g += at._graph_
             for c in res._agents_.values():
@@ -396,7 +397,7 @@ class ReMDocument(StringIO):
     data = ""
     format = ""   # rdflib name for format
 
-    def __init__(self, uri, data='', filename='', mimeType='', format =''):
+    def __init__(self, uri, data='', filename='', mimeType='', format ='', accept=''):
         self.uri = uri
         if data:
             self.data = data
@@ -409,16 +410,31 @@ class ReMDocument(StringIO):
             # try to fetch uri
             try:
                 req = urllib2.Request(uri)
-                req.add_header('Accept', accept_header)
+                if accept:
+                    # add custom accept header
+                    req.add_header('Accept', accept)
+                else:
+                    # otherwise add default
+                    req.add_header('Accept', accept_header)
                 fh = urllib2.urlopen(req)
                 self.data = fh.read()
                 self.info = fh.info()
                 mimeType = self.info.dict.get('content-type', mimeType)
-                # we want ReM URI, not aggr, if redirected
                 self.uri = fh.geturl()
                 fh.close()
             except:
                 raise OreException('ReMDocument must either have data or filename')
+
+            if not format:
+                mimeHash = {'application/atom+xml' : 'atom', 
+                        'application/xhtml+xml' : 'rdfa',
+                        'application/rdf+xml' : 'xml',
+                        'text/plain' : 'nt',
+                        'text/rdf+n3' : 'n3',
+                        'application/x-turtle' : 'turtle',
+                        'application/rdf+xl' : 'pretty-xml'}
+                format = mimeHash.get(mimeType, '')
+
         self.mimeType = mimeType
         self.format = format
         StringIO.__init__(self, self.data)
