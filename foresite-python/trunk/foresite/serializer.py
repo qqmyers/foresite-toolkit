@@ -209,8 +209,6 @@ class AtomSerializer(ORESerializer):
     def serialize(self, rem, page=-1):
         aggr = rem._aggregation_
         g = self.merge_graphs(rem)
-
-        del namespaces['']
         root = Element("{%s}entry" % namespaces['atom'], nsmap=namespaces)
 
         # entry/id == tag for entry == ReM dc:identifier

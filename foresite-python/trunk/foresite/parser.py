@@ -143,7 +143,7 @@ class AtomParser(OREParser):
         else:
             agent = Agent()
 
-        self.all_objects[agent._uri] = agent
+        self.all_objects[agent._uri_] = agent
         if name:
             agent.name = name[0]
         if mbox:
@@ -188,6 +188,7 @@ class AtomParser(OREParser):
         # links only apply to aggregations now
         # and can be anything
 
+        t = None
         if type == str(namespaces['ore']['aggregates']):
             # Build Aggregated Resource
             t = AggregatedResource(uri)
@@ -206,8 +207,8 @@ class AtomParser(OREParser):
             if format or lang or title or extent:
                 t = ArbitraryResource(uri)
 
-        self.all_objects[t._uri_] = t
         if format or lang or title or extent:
+            self.all_objects[t._uri_] = t
             if format:
                 t._dc.format = format
             if lang:
@@ -223,7 +224,11 @@ class AtomParser(OREParser):
 
     def handle_rdf(self, elem, what):
         # Create AT for @about
-        uri_at = elem.attrib['{%s}about' % namespaces['rdf']]
+        try:
+            uri_at = elem.attrib['{%s}about' % namespaces['rdf']]
+        except:
+            uri_at = elem.attrib['{%s}nodeID' % namespaces['rdf']]
+
         if uri_at == str(what.uri):
             at = what
         elif elem.xpath('ore:proxyFor', namespaces=namespaces):
@@ -249,9 +254,18 @@ class AtomParser(OREParser):
                     val = kid.attrib['{%s}resource' % namespaces['rdf']]
                     val = URIRef(val)
                 except:
-                    print "NO MATCH FOR %s" % etree.tostring(kid)
-                    continue                
-            setattr(at, name, val)
+                    # could be a ref to a blank node
+                    try:
+                        val = kid.attrib['{%s}nodeID' % namespaces['rdf']]
+                        val = URIRef(val)
+                    except:
+                        continue                
+            try:
+                setattr(at, name, val)
+            except:
+                # Probably failed to resolve attribute name -> ns
+                pass
+
         if isinstance(at, Proxy):
             # try to update proxyIn and proxyFor
             try:
@@ -274,11 +288,6 @@ class AtomParser(OREParser):
         # first construct aggr and rem
 
         self.all_objects = {}
-
-        try:
-            del namespaces['']
-        except:
-            pass
 
         uri_a = root.xpath("/atom:entry/atom:link[@rel='http://www.openarchives.org/ore/terms/describes']/@href", namespaces=namespaces)
         uri_r = root.xpath("/atom:entry/atom:link[@rel='self']/@href", namespaces=namespaces)
@@ -336,7 +345,14 @@ class AtomParser(OREParser):
             self.handle_person(rauth, rem, 'contributor')
 
         for rdf in root.xpath('/atom:entry/ore:triples/rdf:Description', namespaces=namespaces):
-            about = URIRef(rdf.attrib['{%s}about' % namespaces['rdf']])
+            try:
+                about = URIRef(rdf.attrib['{%s}about' % namespaces['rdf']])
+            except:
+                # probably a blank node
+                try:
+                    about = BNode(rdf.attrib['{%s}nodeID' % namespaces['rdf']])
+                except:
+                    raise
             if about in self.all_objects:
                 self.handle_rdf(rdf, self.all_objects[about])
             else:
@@ -490,7 +506,6 @@ class OldAtomParser(AtomParser):
                     val = kid.attrib['{%s}resource' % namespaces['rdf']]
                     val = URIRef(val)
                 except:
-                    print "NO MATCH FOR %s" % etree.tostring(kid)
                     continue                
             setattr(at, name, val)
 

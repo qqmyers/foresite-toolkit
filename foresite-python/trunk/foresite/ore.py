@@ -23,7 +23,7 @@ class Graph(ConjunctiveGraph):
             v = elements[k]
             if name in v:
                 return namespaces[k]
-        return namespaces['']
+        return ''
 
     def split_uri(self, uri):
         # given namespaced uri, find base property name

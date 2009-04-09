@@ -51,7 +51,6 @@ proxyTypeHash = {'UUID' : gen_proxy_uuid,
 ### Namespace Definitions
 ### If you need a new namespace you MUST add it into this hash
 
-myNamespace = Namespace('#')
 namespaces = {'ore' : Namespace('http://www.openarchives.org/ore/terms/'),
               'orex' : Namespace('http://foresite.cheshire3.org/orex/terms/'),
               'dc' : Namespace('http://purl.org/dc/elements/1.1/'),
@@ -71,8 +70,7 @@ namespaces = {'ore' : Namespace('http://www.openarchives.org/ore/terms/'),
               'skos' : Namespace('http://www.w3.org/2004/02/skos/core#'),
               'eurepo' : Namespace('info:eu-repo/semantics/'),
               'at' : Namespace('http://purl.org/syndication/atomtriples/1/'),
-              'iana' : Namespace('http://www.iana.org/assignments/relation/'), 
-              '' : myNamespace
+              'iana' : Namespace('http://www.iana.org/assignments/relation/')
               }
 
 ### Elements commonly used in ORE
@@ -81,7 +79,7 @@ namespaces = {'ore' : Namespace('http://www.openarchives.org/ore/terms/'),
 # (Not complete for most namespaces, just common terms)
 elements = {
     'ore' : ['describes', 'isDescribedBy', 'aggregates', 'isAggregatedBy', 'similarTo', 'proxyFor', 'proxyIn', 'lineage'],
-    'orex' : ['isAuthoritativeFor', 'AnonymousAgent', 'page', 'follows'],
+    'orex' : ['isAuthoritativeFor', 'AnonymousAgent', 'page', 'follows', 'firstPage', 'lastPage'],
     'dc' : ['coverage', 'date', 'description', 'format', 'identifier', 'language', 'publisher', 'relation', 'rights', 'source', 'subject', 'title'],  # no creator, contributor
     'dcterms': ['abstract', 'accessRights', 'accrualMethod', 'accrualPeriodicity', 'accrualPolicy', 'alternative', 'audience', 'available', 'bibliographicCitation', 'conformsTo', 'contributor', 'created', 'creator', 'dateAccepted', 'dateCopyrighted', 'dateSubmitted', 'educationLevel', 'extent', 'hasFormat', 'hasPart', 'hasVersion', 'instructionalMethod', 'isFormatOf', 'isPartOf', 'isReferencedBy', 'isReplacedBy', 'isRequiredBy', 'issued', 'isVersionOf', 'license', 'mediator', 'medium', 'modified', 'provenance', 'references', 'replaces', 'requires', 'rights', 'rightsHolder', 'spatial', 'tableOfContents', 'temporal', 'valid'],  # also rights
     'foaf' : ['accountName', 'aimChatID', 'birthday', 'depiction', 'depicts', 'family_name', 'firstName', 'gender', 'givenname', 'homepage', 'icqChatID', 'img', 'interest', 'jabberID', 'knows', 'logo', 'made', 'maker', 'mbox', 'member', 'msnChatID', 'name', 'nick', 'openid', 'page', 'phone', 'surname', 'thumbnail', 'weblog', 'yahooChatID'],
