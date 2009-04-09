@@ -4,6 +4,7 @@ import urllib, urllib2
 from rdflib import ConjunctiveGraph, URIRef, BNode, Literal
 from utils import *
 from StringIO import StringIO
+from utils import unconnectedAction
 
 # --- Object Class Definitions ---
 
@@ -301,7 +302,7 @@ class Aggregation(OREResource):
                 # include nestings recursively
                 g += res._merge_all_graphs(public, top=0)
 
-        if not g.connected():
+        if not g.connected() and unconnectedAction != 'ignore':
             raise OreException("Must have connected graph")
 
         if public:
@@ -432,7 +433,7 @@ class ReMDocument(StringIO):
                         'text/plain' : 'nt',
                         'text/rdf+n3' : 'n3',
                         'application/x-turtle' : 'turtle',
-                        'application/rdf+xl' : 'pretty-xml'}
+                        'application/rdf+nt' : 'nt'}
                 format = mimeHash.get(mimeType, '')
 
         self.mimeType = mimeType

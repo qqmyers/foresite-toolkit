@@ -1,6 +1,6 @@
 
 from ore import *
-from utils import namespaces, OreException
+from utils import namespaces, OreException, unconnectedAction
 from lxml import etree
 from xml.dom import minidom
 from rdflib import StringInputSource, URIRef
@@ -88,15 +88,26 @@ class RdfLibParser(OREParser):
                 tocheck = list(graph.subject_predicates(subj))
                 while tocheck:
                     subsubj = tocheck.pop(0)[0]
+                    checked[subsubj] = 1
                     if things.has_key(subsubj):
                         things[subsubj]._triples_[ar.uri] = ar
                         found = 1
                         break
                     else:
-                        tocheck.extend(graph.subject_predicates(subsubj))
+                        extd = list(graph.subject_predicates(subsubj))
+                        if extd:
+                            for e in extd[0]:
+                                if not checked.has_key(e):
+                                    tocheck.append(e)
+                        
                 if not found:
-                    # Input graph is not connected!
-                    rem._triples_[ar.uri] = ar
+                    if unconnectedAction == 'ignore':
+                        # Input graph is not connected!
+                        rem._triples_[ar.uri] = ar
+                    elif unconnectedAction == 'warn':
+                        print "Input Graph Not Connected at: %s" % subj
+                    elif unconnectedAction == 'raise':
+                        raise OreException("Input Graph Not Connected at: %s" % subj)
 
         return rem        
     
