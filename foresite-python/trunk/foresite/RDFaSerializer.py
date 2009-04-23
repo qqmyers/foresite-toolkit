@@ -82,7 +82,7 @@ class RDFaSerializer(Serializer):
             #if object.datatype:
             #    attributes += ' rdf:datatype="%s"'%object.datatype
             self.write('%s<span property="%s" content="%s"%s></span>\n' %
-                       (indent, qname, escape(object), attributes))
+                       (indent, qname, escape(object, {'"':'&quot;'}), attributes))
 
         else:
             if isinstance(object, URIRef):
