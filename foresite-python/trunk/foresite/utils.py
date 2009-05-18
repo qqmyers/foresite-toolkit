@@ -70,7 +70,11 @@ namespaces = {'ore' : Namespace('http://www.openarchives.org/ore/terms/'),
               'skos' : Namespace('http://www.w3.org/2004/02/skos/core#'),
               'eurepo' : Namespace('info:eu-repo/semantics/'),
               'at' : Namespace('http://purl.org/syndication/atomtriples/1/'),
-              'iana' : Namespace('http://www.iana.org/assignments/relation/')
+              'iana' : Namespace('http://www.iana.org/assignments/relation/'),
+              'bibo' : Namespace('http://purl.org/ontology/bibo/'),
+              'prism' : Namespace('http://prismstandard.org/namespaces/1.2/basic/'),
+              'vcard' : Namespace('http://nwalsh.com/rdf/vCard#'),
+              'zotero' : Namespace('http://www.zotero.org/namespaces/exprt#')              
               }
 
 ### Elements commonly used in ORE
@@ -87,8 +91,9 @@ elements = {
     'rdf' : ['type'],
     'rdfs' : ['seeAlso', 'label', 'isDefinedBy'],
     'mesur' : ['hasAccess', 'hasAffiliation', 'hasIssue', 'hasVolume', 'used', 'usedBy'],
-    'skos' : ['prefLabel', 'inScheme', 'broader', 'narrower', 'related', 'Concept', 'ConceptScheme'],
-    'iana' : ['alternate', 'current' ,'enclosure', 'edit', 'edit-media', 'first', 'last',  'next', 'next-archive', 'previous', 'payment', 'prev-archive', 'related', 'replies', 'service', 'via']  # -self, -license
+    'skos' : ['prefLabel', 'inScheme', 'broader', 'narrower', 'related', 'Concept', 'ConceptScheme', 'changeNote', 'editorialNote'],
+    'iana' : ['alternate', 'current' ,'enclosure', 'edit', 'edit-media', 'first', 'last',  'next', 'next-archive', 'previous', 'payment', 'prev-archive', 'related', 'replies', 'service', 'via'],  # -self, -license
+    'bibo' : ['Article', 'Issue', 'Journal', 'pageStart', 'pageEnd', 'volume']
     }
 
 ### The order in which to search the above hash
