@@ -388,7 +388,12 @@ class AggregatedResource(OREResource):
 class ArbitraryResource(OREResource):
     # To allow for arbitrary triples that aren't one of the major
     # ORE classes
-    pass
+
+    def __init__(self, uri=None):
+        if uri == None:
+            OREResource.__init__(self, BNode())
+        else:
+            OREResource.__init__(self, uri)
 
 
 class ReMDocument(StringIO):    

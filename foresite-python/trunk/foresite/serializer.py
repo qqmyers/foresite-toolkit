@@ -337,14 +337,23 @@ class AtomSerializer(ORESerializer):
         if rem._dcterms.created:
             e = SubElement(root, '{%s}published' % namespaces['atom'])
             c = rem._dcterms.created[0]
-            e.text = str(c)
+            md = str(c)
+            if md.find('Z') == -1:
+                # append Z
+                md += "Z"
+            e.text = md
             self.done_triples.append((rem._uri_, namespaces['dcterms']['created'], c))
 
         # entry/updated == ReM's dcterms:modified
         e = SubElement(root, '{%s}updated' % namespaces['atom'])
         if rem._dcterms.modified:
             c = rem._dcterms.modified[0]
-            e.text = str(c)
+            md = str(c)
+            if md.find('Z') == -1:
+                # append Z
+                md += "Z"
+            e.text = str(md)
+            
             self.done_triples.append((rem._uri_, namespaces['dcterms']['modified'], c))
         else:
             e.text = now()
