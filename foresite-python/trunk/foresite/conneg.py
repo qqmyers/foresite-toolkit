@@ -227,7 +227,15 @@ def best(client, server):
                 return mtc
     return None
         
-        
+
+def parse(data):
+    lex = MiniLex(data)
+    p = Parser(lex)
+    mts = p.process()
+    mts.sort(key=lambda x: x.sort2(), reverse=True)
+    mts.sort(key=lambda x: x.qval, reverse=True)
+    return mts
+
 if __name__ == '__main__':
     ml = MiniLex("text/*;q=0.3, text/html;q=0.7, text/html;level=1, text/html;level=2;q=0.4, */*;q=0.2")
     p = Parser(ml)

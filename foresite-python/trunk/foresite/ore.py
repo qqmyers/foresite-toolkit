@@ -6,6 +6,7 @@ from utils import *
 from StringIO import StringIO
 from utils import unconnectedAction
 from foresite import libraryName, libraryUri, libraryEmail
+from foresite import conneg
 
 # --- Object Class Definitions ---
 
@@ -433,6 +434,12 @@ class ReMDocument(StringIO):
                 raise OreException('ReMDocument must either have data or filename')
 
             if not format:
+                try:
+                    mt = conneg.parse(mimeType)
+                    if mt:
+                        mimeType = mt[0].mimetype1 + '/' + mt[0].mimetype2
+                except:
+                    pass
                 mimeHash = {'application/atom+xml' : 'atom', 
                         'application/xhtml+xml' : 'rdfa',
                         'application/rdf+xml' : 'xml',
