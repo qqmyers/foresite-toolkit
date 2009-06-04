@@ -8,7 +8,7 @@ from rdflib import Namespace
 ### Assign a UUID URI or Blank Node for autogenerating agent URIs
 ### if not present in data
 assignAgentUri = False
-# assignAgentUri = True
+#assignAgentUri = True
 
 ### Use UUID or oreproxy.org for autogenerating proxy URIs if
 ### not present in data

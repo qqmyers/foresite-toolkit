@@ -1,6 +1,7 @@
 
 import re
 from ore import *
+from ore import foresiteAgent
 from foresite import libraryName, libraryUri, libraryVersion
 from utils import namespaces, OreException, unconnectedAction, pageSize
 from utils import gen_uuid, build_html_atom_content
@@ -46,6 +47,8 @@ class ORESerializer(object):
         if not rem.created:
             rem._dcterms.created = n
         rem._dcterms.modified = n
+        if not rem._dcterms.creator:
+            rem.add_agent(foresiteAgent, 'creator')
 
         g += rem._graph_
         for at in rem._triples_.values():

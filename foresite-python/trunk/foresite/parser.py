@@ -28,19 +28,19 @@ class RdfLibParser(OREParser):
             uri_a = lres[0][1]
         except IndexError:
             raise OreException("Graph does not have mandatory ore:describes triple")
-        if strict and len(lres) != 1:
+        if self.strict and len(lres) != 1:
             raise OreException("Graph must contain exactly one ore:describes triple")
 
         if self.strict and not protocolUriRe.match(uri_r):
             raise OreException("Resource Map URI must be protocol-based URI: %s" % uri_r)
-        if self.strict and not utils.protocolUriRe.match(uri_a):
+        if self.strict and not protocolUriRe.match(uri_a):
             raise OreException("Aggregation URI must be protocol-based URI: %s" % uri_a)
 
-        remc = list(graph.query("PREFIX dcterms: <%s> SELECT { <%s> dcterms:creator ?a .}" % namespaces['dcterms']))
+        remc = list(graph.query("PREFIX dcterms: <%s> SELECT ?a WHERE { <%s> dcterms:creator ?a .}" % (namespaces['dcterms'], uri_r)))
         if self.strict and not remc:
             raise OreException("Graph does not have mandatory 'ResourceMap dcterms:creator ?x' triple")
 
-        remc = list(graph.query("PREFIX dcterms: <%s> SELECT { <%s> dcterms:modified ?a .}" % namespaces['dcterms']))
+        remc = list(graph.query("PREFIX dcterms: <%s> SELECT ?a WHERE { <%s> dcterms:modified ?a .}" % (namespaces['dcterms'], uri_r)))
         if self.strict and not remc:
             raise OreException("Graph does not have mandatory 'ResourceMap dcterms:modified timestamp' triple")
 
@@ -56,7 +56,7 @@ class RdfLibParser(OREParser):
         res2 = graph.query("PREFIX ore: <http://www.openarchives.org/ore/terms/> SELECT ?b WHERE {<%s> ore:aggregates ?b .}" % uri_a )
         for uri_ar in res2:
             uri_ar = uri_ar[0]
-            if strict and not utils.protocolUriRe.match(uri_ar):
+            if self.strict and not protocolUriRe.match(uri_ar):
                 raise OreException("Aggregated Resource URI must be protocol-based URI: %s" % uri_ar)
 
             res = AggregatedResource(uri_ar)
