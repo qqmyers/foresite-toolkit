@@ -2,7 +2,6 @@
 #
 # Simple Mod_Python handler for validating and transforming
 #   ORE Resource Maps
-# Make sure conneg.py is in PythonPath.
 # 
 # apache config:
 # <Directory /home/cheshire/install/htdocs/txr>
@@ -17,8 +16,8 @@ from mod_python import apache
 from mod_python.util import FieldStorage
 
 import re
-import conneg
 from foresite import *
+from foresite import conneg
 from foresite.utils import namespaces, OreException
 from foresite.serializer import OldAtomSerializer
 from xml.sax._exceptions import SAXParseException
