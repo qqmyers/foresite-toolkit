@@ -453,6 +453,6 @@ aggr_type = ArbitraryResource(namespaces['ore']['Aggregation'])
 aggr_type.label = "Aggregation"
 aggr_type.isDefinedBy = namespaces['ore']
 
-foresiteAgent = Agent('http://foresite.cheshire3.org/agent#python')
-foresiteAgent._foaf.name = "Foresite Python Library"
-foresiteAgent._foaf.mbox = "mailto:azaroth@liverpool.ac.uk"
+foresiteAgent = Agent(libraryUri)
+foresiteAgent._foaf.name = libraryName
+foresiteAgent._foaf.mbox = libraryEmail
