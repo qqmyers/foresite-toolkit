@@ -2,6 +2,7 @@
 #
 # Simple Mod_Python handler for validating and transforming
 #   ORE Resource Maps
+# Make sure conneg.py is in PythonPath.
 # 
 # apache config:
 # <Directory /home/cheshire/install/htdocs/txr>
@@ -16,7 +17,7 @@ from mod_python import apache
 from mod_python.util import FieldStorage
 
 import re
-import minilex
+import conneg
 from foresite import *
 from foresite.utils import namespaces, OreException
 from foresite.serializer import OldAtomSerializer
@@ -45,7 +46,7 @@ mimeHash = {}
 for (k,v) in srlzHash.items():
     mimeHash[v.mimeType] = k
 mimestr = ', '.join(mimeHash.keys())
-mimeList = minilex.parse(mimestr)
+mimeList = conneg.parse(mimestr)
 
 protoUriRe = re.compile("^([s]?http[s]?://|[t]?ftp:/|z39.50r:|gopher:|imap://|news:|nfs:|nntp:|rtsp:)")
 
@@ -90,8 +91,8 @@ class validateHandler:
         if not mt:
             try:
                 wanted = req.headers_in['Accept']
-                mts = minilex.parse(wanted)
-                mt = minilex.best(mts, mimeList)
+                mts = conneg.parse(wanted)
+                mt = conneg.best(mts, mimeList)
             except:
                 mt = ''
 
