@@ -222,13 +222,18 @@ class AtomSerializer(ORESerializer):
             e.text = "urn:uuid:%s" % gen_uuid()
 
         # entry/title == Aggr's dc:title 
-        if not aggr._dc.title:
+        title = aggr._dc.title
+        tns = 'dc'
+        if not title:
+            title = aggr._dcterms.title
+            tns = 'dcterms'
+        if not title:
             raise OreException("Atom Serialisation requires title on aggregation")
         else:
             e = SubElement(root, '{%s}title' % namespaces['atom'])
-            dctit = aggr._dc.title[0]
+            dctit = title[0]
             e.text = str(dctit)
-            self.done_triples.append((aggr._uri_, namespaces['dc']['title'], dctit))
+            self.done_triples.append((aggr._uri_, namespaces[tns]['title'], dctit))
 
         # entry/author == Aggr's dcterms:creator
         for who in aggr._dcterms.creator:
