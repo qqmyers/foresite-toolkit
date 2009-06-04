@@ -1,13 +1,14 @@
 
 from ore import *
-from utils import namespaces, OreException, unconnectedAction
+from utils import namespaces, OreException, unconnectedAction, protocolUriRe
 from lxml import etree
 from xml.dom import minidom
 from rdflib import StringInputSource, URIRef
 
 class OREParser(object):
     # Take some data and produce objects/graph
-    pass
+    def __init__(self):
+        self.strict = False
 
 class RdfLibParser(OREParser):
 
@@ -27,6 +28,22 @@ class RdfLibParser(OREParser):
             uri_a = lres[0][1]
         except IndexError:
             raise OreException("Graph does not have mandatory ore:describes triple")
+        if strict and len(lres) != 1:
+            raise OreException("Graph must contain exactly one ore:describes triple")
+
+        if self.strict and not protocolUriRe.match(uri_r):
+            raise OreException("Resource Map URI must be protocol-based URI: %s" % uri_r)
+        if self.strict and not utils.protocolUriRe.match(uri_a):
+            raise OreException("Aggregation URI must be protocol-based URI: %s" % uri_a)
+
+        remc = list(graph.query("PREFIX dcterms: <%s> SELECT { <%s> dcterms:creator ?a .}" % namespaces['dcterms']))
+        if self.strict and not remc:
+            raise OreException("Graph does not have mandatory 'ResourceMap dcterms:creator ?x' triple")
+
+        remc = list(graph.query("PREFIX dcterms: <%s> SELECT { <%s> dcterms:modified ?a .}" % namespaces['dcterms']))
+        if self.strict and not remc:
+            raise OreException("Graph does not have mandatory 'ResourceMap dcterms:modified timestamp' triple")
+
 
         rem = ResourceMap(uri_r)
         aggr = Aggregation(uri_a)
@@ -39,6 +56,9 @@ class RdfLibParser(OREParser):
         res2 = graph.query("PREFIX ore: <http://www.openarchives.org/ore/terms/> SELECT ?b WHERE {<%s> ore:aggregates ?b .}" % uri_a )
         for uri_ar in res2:
             uri_ar = uri_ar[0]
+            if strict and not utils.protocolUriRe.match(uri_ar):
+                raise OreException("Aggregated Resource URI must be protocol-based URI: %s" % uri_ar)
+
             res = AggregatedResource(uri_ar)
             things[uri_ar] = res
             proxy = list(graph.query("PREFIX ore: <http://www.openarchives.org/ore/terms/> SELECT ?a WHERE {?a ore:proxyFor <%s> .}" % uri_ar ))
@@ -337,6 +357,8 @@ class AtomParser(OREParser):
         updated = root.xpath("/atom:entry/atom:updated/text()", namespaces=namespaces)
         if updated:
             rem._dcterms.modified = updated[0]        
+        elif self.strict:
+            raise OreException("Graph does not have mandatory 'ResourceMap dcterms:modified timestamp' triple")
 
         published = root.xpath("/atom:entry/atom:published/text()", namespaces=namespaces)
         if published:
@@ -352,6 +374,7 @@ class AtomParser(OREParser):
 
         for rauth in root.xpath('/atom:entry/atom:source/atom:author', namespaces=namespaces):
             self.handle_person(rauth, rem, 'creator')
+
         for rauth in root.xpath('/atom:entry/atom:source/atom:contributor', namespaces=namespaces):
             self.handle_person(rauth, rem, 'contributor')
 

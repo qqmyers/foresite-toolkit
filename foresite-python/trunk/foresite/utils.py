@@ -32,6 +32,7 @@ atomXsltUri = ""
 build_html_atom_content = False
 accept_header = 'application/rdf+xml;q=1.0, application/atom+xml;q=0.9, text/rdf+n3;q=0.8'
 
+protocolUriRe = re.compile("^([s]?http[s]?://|[t]?ftp:/|z39.50r:|gopher:|imap://|news:|nfs:|nntp:|rtsp:)")
 
 def gen_proxy_uuid(res, aggr):
     u = gen_uuid()
