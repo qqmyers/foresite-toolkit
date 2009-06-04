@@ -5,6 +5,7 @@ from rdflib import ConjunctiveGraph, URIRef, BNode, Literal
 from utils import *
 from StringIO import StringIO
 from utils import unconnectedAction
+from foresite import libraryName, libraryUri, libraryEmail
 
 # --- Object Class Definitions ---
 
