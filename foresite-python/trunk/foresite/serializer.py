@@ -5,7 +5,8 @@ from ore import foresiteAgent
 from foresite import libraryName, libraryUri, libraryVersion
 from utils import namespaces, OreException, unconnectedAction, pageSize
 from utils import gen_uuid, build_html_atom_content
-from rdflib import URIRef, BNode, Literal, plugin, syntax
+from rdflib import URIRef, BNode, Literal, plugin, syntax, RDF
+from rdflib.util import uniq
 from lxml import etree
 from lxml.etree import Element, SubElement
 
@@ -41,7 +42,6 @@ class ORESerializer(object):
     def merge_graphs(self, rem, page=-1):
         g = Graph()
         # Put in some sort of recognition of library?
-
 
         n = now()
         if not rem.created:
@@ -212,7 +212,16 @@ class AtomSerializer(ORESerializer):
     def serialize(self, rem, page=-1):
         aggr = rem._aggregation_
         g = self.merge_graphs(rem)
-        root = Element("{%s}entry" % namespaces['atom'], nsmap=namespaces)
+
+        # make nsmap better
+        nm = g.namespace_manager
+        nsmap = {'atom' : str(namespaces['atom'])}
+        poss = uniq(g.predicates()) + uniq(g.objects(None, RDF.type))        
+        for pred in poss:
+            pf,ns,l = nm.compute_qname(pred)
+            nsmap[pf] = ns
+        
+        root = Element("{%s}entry" % namespaces['atom'], nsmap=nsmap)
 
         # entry/id == tag for entry == ReM dc:identifier
         # if not exist, generate Yet Another uuid
@@ -254,9 +263,11 @@ class AtomSerializer(ORESerializer):
 
         # entry/category[@scheme="(magic)"][@term="(datetime)"]        
         for t in aggr._dcterms.created:
+            t = t.strip()
             e = SubElement(root, '{%s}category' % namespaces['atom'], term=str(t),
                            scheme="http://www.openarchives.org/ore/terms/datetime/created")   
         for t in aggr._dcterms.modified:
+            t = t.strip()
             e = SubElement(root, '{%s}category' % namespaces['atom'], term=str(t),
                            scheme="http://www.openarchives.org/ore/terms/datetime/modified")
         
@@ -332,6 +343,10 @@ class AtomSerializer(ORESerializer):
                 html.append('<li><a href="%s">%s</a></li>' % (r.uri, r.title[0]))
             html.append('</ul>')
             e.text = '\n'.join(html)
+        else:
+            e = SubElement(root, '{%s}content' % namespaces['atom'])
+            e.set('type', 'html')
+            e.text = "No Content"
 
         # entry/link[@rel='self'] == URI-R
         self.make_link(root, 'self', rem._uri_, g)

@@ -443,7 +443,7 @@ class ReMDocument(StringIO):
                 mimeHash = {'application/atom+xml' : 'atom', 
                         'application/xhtml+xml' : 'rdfa',
                         'application/rdf+xml' : 'xml',
-                        'text/plain' : 'nt',
+                        'text/plain' : 'nt',  # yes, really
                         'text/rdf+n3' : 'n3',
                         'application/x-turtle' : 'turtle',
                         'application/rdf+nt' : 'nt'}
