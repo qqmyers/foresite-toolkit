@@ -50,18 +50,8 @@ class ORESerializer(object):
         if not rem._dcterms.creator:
             rem.add_agent(foresiteAgent, 'creator')
 
-        g += rem._graph_
-        for at in rem._triples_.values():
-            g += at._graph_
-        for c in rem._agents_.values():
-            g += c._graph_
-        
-        aggr = rem._aggregation_
-        g += aggr._graph_
-        for at in aggr._triples_.values():
-            g += at._graph_
-        for c in aggr._agents_.values():
-            g += c._graph_
+        aggr = rem.aggregation
+        stack = [rem, aggr]
 
         if page != -1:
             # first is 1, 2, 3 ...
@@ -69,25 +59,37 @@ class ORESerializer(object):
             tosrlz = aggr._resources_[start:start+pageSize]
         else:
             tosrlz = aggr._resources_
-            
-        for (res, proxy) in tosrlz:
-            g += res._graph_
-            if proxy:
-                g += proxy._graph_
-            for at in res._triples_.values():
-                g += at._graph_
-            for c in res._agents_.values():
-                g += c._graph_
-            if isinstance(res, Aggregation):
-                # don't recurse, remove aggregates                
-                for a in res._ore.aggregates:
-                    g.remove((res._uri_, namespaces['ore']['aggregates'], a))
 
+        remove = []
+        for (r, p) in tosrlz:
+            if isinstance(r, Aggregation):
+                for a in r._ore.aggregates:
+                    remove.append((r._uri_, namespaces['ore']['aggregates'], a))                
+            stack.extend([r, p])
+
+            
+        done = []
+        while stack:
+            print repr(stack)
+            what = stack.pop(0)
+            if what == None or what in done:
+                continue
+            done.append(what)            
+            g += what._graph_
+            for at in what._triples_.values():
+                stack.append(at)
+            for who in what._agents_.values():
+                stack.append(who)
+            
+                
         if self.public:
             # Remove internal methods
             for p in internalPredicates:
                 for (s,o) in g.subject_objects(p):
                     g.remove((s,p,o))
+        for trip in remove:
+            g.remove(trip)
+            
         if not aggr._resources_:
             raise OreException("Aggregation must aggregate something")
         g = self.connected_graph(g, aggr._uri_)
