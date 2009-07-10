@@ -70,7 +70,6 @@ class ORESerializer(object):
             
         done = []
         while stack:
-            print repr(stack)
             what = stack.pop(0)
             if what == None or what in done:
                 continue
