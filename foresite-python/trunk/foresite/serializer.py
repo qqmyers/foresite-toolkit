@@ -67,7 +67,6 @@ class ORESerializer(object):
                     remove.append((r._uri_, namespaces['ore']['aggregates'], a))                
             stack.extend([r, p])
 
-            
         done = []
         while stack:
             what = stack.pop(0)
@@ -79,7 +78,6 @@ class ORESerializer(object):
                 stack.append(at)
             for who in what._agents_.values():
                 stack.append(who)
-            
                 
         if self.public:
             # Remove internal methods
