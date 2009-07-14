@@ -3,7 +3,11 @@ from ore import *
 from utils import namespaces, OreException, unconnectedAction, protocolUriRe
 from lxml import etree
 from xml.dom import minidom
-from rdflib import StringInputSource, URIRef
+from rdflib import StringInputSource, URIRef, plugin, syntax
+
+plugin.register('json', syntax.parsers.Parser, 'foresite.JsonParser', 'JsonParser')
+
+
 
 class OREParser(object):
     # Take some data and produce objects/graph
