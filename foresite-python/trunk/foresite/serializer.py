@@ -12,6 +12,9 @@ from lxml.etree import Element, SubElement
 
 plugin.register('rdfa', syntax.serializers.Serializer, 'foresite.RDFaSerializer', 'RDFaSerializer')
 plugin.register('json', syntax.serializers.Serializer, 'foresite.JsonSerializer', 'JsonSerializer')
+plugin.register('pretty-json', syntax.serializers.Serializer, 'foresite.JsonSerializer', 'PrettyJsonSerializer')
+
+
 
 class ORESerializer(object):
     # Take objects and produce data
