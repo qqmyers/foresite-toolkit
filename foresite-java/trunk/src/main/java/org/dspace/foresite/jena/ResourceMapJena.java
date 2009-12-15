@@ -225,18 +225,18 @@ public class ResourceMapJena extends OREResourceJena implements ResourceMap
     {
         try
         {
-            SimpleDateFormat sdf = new SimpleDateFormat(JenaOREConstants.dateFormat);
+            //SimpleDateFormat sdf = new SimpleDateFormat(JenaOREConstants.dateFormat);
             StmtIterator itr = res.listProperties(DCTerms.modified);
             if (itr.hasNext())
             {
                 Statement statement = itr.nextStatement();
                 String value = ((Literal) statement.getObject()).getLexicalForm();
-                Date modified = sdf.parse(value);
+                Date modified = DateParser.parse(value);
                 return modified;
             }
             return null;
         }
-        catch (ParseException e)
+        catch (OREParserException e)
         {
             throw new OREException(e);
         }

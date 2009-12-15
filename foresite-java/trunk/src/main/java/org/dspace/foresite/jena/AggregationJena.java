@@ -195,17 +195,17 @@ public class AggregationJena extends OREResourceJena implements Aggregation
     {
         try
         {
-            SimpleDateFormat sdf = new SimpleDateFormat(JenaOREConstants.dateFormat);
+            //SimpleDateFormat sdf = new SimpleDateFormat(JenaOREConstants.dateFormat);
             Statement statement = res.getProperty(DCTerms.modified);
             if (statement == null)
             {
                 return null;
             }
             String date = ((Literal) statement.getObject()).getLexicalForm();
-            Date created = sdf.parse(date);
+            Date created = DateParser.parse(date);
             return created;
         }
-        catch (ParseException e)
+        catch (OREParserException e)
         {
             throw new OREException(e);
         }

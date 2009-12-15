@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Test mapping of a minimal ReM:
+        one author
+        publisher private identifier
+        publisher public identifier
+        one figure
+        one dataset
+-->
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:dcterms="http://purl.org/dc/terms/" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ore="http://www.openarchives.org/ore/terms/"
+    xmlns:foaf="http://xmlns.com/foaf/0.1/">
+    
+    <rdf:Description rdf:about="http://publisher.com/article/rem">
+        <rdf:type rdf:resource="ore:ResourceMap"/>
+        <ore:describes rdf:resource="http://dx.doi.org/publisher/article/doi" />
+    </rdf:Description>
+    
+    <rdf:Description rdf:about="http://dx.doi.org/publisher/article/doi">   
+        <rdf:type rdf:resource="ore:Aggregation"/>
+        <ore:isDescribedBy rdf:resource="http://publisher.com/article/rem"/>
+        <ore:aggregates rdf:resource="info://figure:figure1"/>        
+        <ore:aggregates rdf:resource="http://publisher.com/dataset1.fits"/>
+        
+        <!-- Author -->
+        <dcterms:creator rdf:parseType="Resource">
+            <foaf:name>Elliot Metsger</foaf:name>
+            <foaf:mbox rdf:resource="mailto:emetsger@jhu.edu" />
+        </dcterms:creator>
+        
+        <!-- Alternate Identifiers -->
+        <dcterms:identifier rdf:parseType="Literal">
+            <dcterms:relation>publisher</dcterms:relation>
+            <dcterms:relation>private</dcterms:relation>
+            <dc:description xsi:type="dcterms:URI">oai:ojs.localhost:article/13</dc:description>
+        </dcterms:identifier>
+        
+        <dcterms:identifier rdf:parseType="Literal">
+            <dcterms:relation>publisher</dcterms:relation>
+            <dcterms:relation>public</dcterms:relation>
+            <dc:description xsi:type="dcterms:URI">doi:apublisher/doi</dc:description>
+            <dc:description xsi:type="dcterms:URI">http://dx.doi.org/publisher/article/doi</dc:description>
+        </dcterms:identifier>
+        
+    </rdf:Description>
+    
+    <rdf:Description rdf:about="http://publisher.com/dataset1.fits">
+        <dcterms:conformsTo rdf:resource="http://example.org/type/DataPub-DS"/>
+    </rdf:Description>
+    
+    <rdf:Description rdf:about="info://figure:figure1">
+        <dcterms:source rdf:resource="http://publisher.com/dataset1.fits"/>
+        <dcterms:conformsTo rdf:resource="http://example.org/type/AAS-Figure"/>
+    </rdf:Description>
+        
+</rdf:RDF>
+
