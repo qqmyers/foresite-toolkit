@@ -1,14 +1,14 @@
 from __future__ import generators
 
-from rdflib.syntax.serializers import Serializer
+from rdflib.serializer import Serializer
 
-from rdflib.URIRef import URIRef
-from rdflib.Literal import Literal
-from rdflib.BNode import BNode
+from rdflib.term import URIRef
+from rdflib.term import Literal
+from rdflib.term import BNode
 
 from rdflib.util import uniq
 from rdflib.exceptions import Error
-from rdflib.syntax.xml_names import split_uri
+#from rdflib.syntax.xml_names import split_uri
 
 from xml.sax.saxutils import quoteattr, escape
 

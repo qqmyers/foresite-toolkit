@@ -3,9 +3,16 @@ from ore import *
 from utils import namespaces, OreException, unconnectedAction, protocolUriRe
 from lxml import etree
 from xml.dom import minidom
-from rdflib import StringInputSource, URIRef, plugin, syntax
+from rdflib.parser import StringInputSource 
+from rdflib import URIRef, plugin, query #, syntax
+from rdflib.parser import Parser
 
-plugin.register('json', syntax.parsers.Parser, 'foresite.JsonParser', 'JsonParser')
+plugin.register('sparql', query.Processor,
+                       'rdfextras.sparql.processor', 'Processor')
+plugin.register('sparql', query.Result,
+                       'rdfextras.sparql.query', 'SPARQLQueryResult')
+
+plugin.register('json', Parser, 'foresite.JsonParser', 'JsonParser')
 
 
 

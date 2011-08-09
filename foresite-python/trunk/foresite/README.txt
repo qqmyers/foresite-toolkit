@@ -23,9 +23,9 @@ dcterms:created.
 And retrieve properties:
 
     >>> a._dc.title
-    [rdflib.Literal('My Aggregation', ...
+    [rdflib.term.Literal(u'My Aggregation')]
     >>> a.created
-    [rdflib.Literal('2008-07-10T12:00:00', ...
+    [rdflib.term.Literal(u'2008-07-10T12:00:00')]
 
 Note that they become lists as any property can be added multiple times.
 
@@ -48,7 +48,7 @@ Create and associate an agent (without a URI) with the aggregation
 If no URI assigned, then it will be a blank node:
 
     >>> me.uri
-    rdflib.BNode(...
+    rdflib.term.BNode(...
 
 Create an agent with a URI:
 
@@ -64,13 +64,13 @@ And fetch the serialisation.
 
     >>> remdoc = a.get_serialization()
     >>> print remdoc.data
-    <entry ...
+    <atom:entry ...
 
 Or, equivalently:
 
     >>> remdoc = rem.get_serialization()
     >>> print remdoc.data
-    <entry ...
+    <atom:entry ...
 
 Resource Maps can be created by hand:
 

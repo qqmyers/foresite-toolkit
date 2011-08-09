@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-version = '0.9'
+version = '1.1'
 setup(name='foresite',
       version=version,
       description='Library for constructing, parsing, manipulating and serializing OAI-ORE Resource Maps',
@@ -16,7 +16,7 @@ setup(name='foresite',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
-      install_requires=['rdflib<3a', 'lxml'],
+      install_requires=['rdflib', 'lxml'],
       test_suite='foresite.tests.test_suite'
       )
 

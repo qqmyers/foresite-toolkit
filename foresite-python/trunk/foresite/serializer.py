@@ -5,14 +5,15 @@ from ore import foresiteAgent
 from foresite import libraryName, libraryUri, libraryVersion
 from utils import namespaces, OreException, unconnectedAction, pageSize
 from utils import gen_uuid, build_html_atom_content
-from rdflib import URIRef, BNode, Literal, plugin, syntax, RDF
+from rdflib import URIRef, BNode, Literal, plugin, RDF #syntax, RDF
+from rdflib.serializer import Serializer
 from rdflib.util import uniq
 from lxml import etree
 from lxml.etree import Element, SubElement
 
-plugin.register('rdfa', syntax.serializers.Serializer, 'foresite.RDFaSerializer', 'RDFaSerializer')
-plugin.register('json', syntax.serializers.Serializer, 'foresite.JsonSerializer', 'JsonSerializer')
-plugin.register('pretty-json', syntax.serializers.Serializer, 'foresite.JsonSerializer', 'PrettyJsonSerializer')
+plugin.register('rdfa', Serializer, 'foresite.RDFaSerializer', 'RDFaSerializer')
+plugin.register('json', Serializer, 'foresite.JsonSerializer', 'JsonSerializer')
+plugin.register('pretty-json', Serializer, 'foresite.JsonSerializer', 'PrettyJsonSerializer')
 
 
 
@@ -329,7 +330,7 @@ class AtomSerializer(ORESerializer):
             for m in mytypes:
                 if m != namespaces['ore']['Aggregation'] and \
                    m in atypes:
-                    possAlt.append(r.uri)
+                    possAlts.append(r.uri)
 
         if not altDone and possAlts:
             # XXX more intelligent algorithm here
