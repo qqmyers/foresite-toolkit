@@ -4,7 +4,7 @@ try:
 except ImportError:
     import simplejson as json
 
-from rdflib.syntax.parsers import Parser
+from rdflib.parser import Parser
 from rdflib import URIRef, BNode, Literal
 
 class JsonParser(Parser):
