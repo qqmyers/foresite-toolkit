@@ -24,7 +24,8 @@
     </licenses>
     <scm>
         <url>https://foresite-toolkit.googlecode.com/svn/foresite-java/trunk/</url>
-        <connection>https://foresite-toolkit.googlecode.com/svn/foresite-java/trunk/</connection>
+        <developerConnection>scm:svn:https://foresite-toolkit.googlecode.com/svn/foresite-java/trunk/</developerConnection>
+        <connection>scm:svn:http://foresite-toolkit.googlecode.com/svn/foresite-java/trunk/</connection>
     </scm>
     <developers>
         <developer>
