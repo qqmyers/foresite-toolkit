@@ -2,7 +2,8 @@
    <modelVersion>4.0.0</modelVersion>
    <groupId>com.googlecode.foresite-toolkit</groupId>
    <artifactId>foresite</artifactId>
-    <version>0.9-SNAPSHOT</version>
+    <version>0.9</version>
+
 
     <!-- brings the sonatype snapshot repository and signing requirement on board -->
     <parent>
@@ -23,9 +24,9 @@
         </license>
     </licenses>
     <scm>
-        <url>https://foresite-toolkit.googlecode.com/svn/foresite-java/trunk/</url>
-        <developerConnection>scm:svn:https://foresite-toolkit.googlecode.com/svn/foresite-java/trunk/</developerConnection>
-        <connection>scm:svn:http://foresite-toolkit.googlecode.com/svn/foresite-java/trunk/</connection>
+        <url>https://foresite-toolkit.googlecode.com/svn/foresite-java/tags/foresite-0.9</url>
+        <developerConnection>scm:svn:https://foresite-toolkit.googlecode.com/svn/foresite-java/tags/foresite-0.9</developerConnection>
+        <connection>scm:svn:http://foresite-toolkit.googlecode.com/svn/foresite-java/tags/foresite-0.9</connection>
     </scm>
     <developers>
         <developer>
