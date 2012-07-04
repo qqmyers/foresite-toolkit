@@ -47,6 +47,7 @@ import org.dspace.foresite.DateParser;
 import org.dspace.foresite.OREParserException;
 import org.dspace.foresite.Vocab;
 
+import java.util.Calendar;
 import java.util.List;
 import java.util.Date;
 import java.util.ArrayList;
@@ -56,6 +57,8 @@ import java.text.SimpleDateFormat;
 import java.text.ParseException;
 import java.net.URI;
 import java.net.URISyntaxException;
+
+import javax.xml.bind.DatatypeConverter;
 
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.Statement;
@@ -185,8 +188,9 @@ public class AggregationJena extends OREResourceJena implements Aggregation
 
     public void setCreated(Date created)
     {
-        SimpleDateFormat sdf = new SimpleDateFormat(JenaOREConstants.dateFormat);
-        String date = sdf.format(created);
+       Calendar cal = Calendar.getInstance();
+       cal.setTime(created);
+        String date = DatatypeConverter.printDateTime(cal);
         res.addProperty(DCTerms.created, model.createTypedLiteral(date, JenaOREConstants.dateTypedLiteral));
     }
 
@@ -213,8 +217,9 @@ public class AggregationJena extends OREResourceJena implements Aggregation
 
     public void setModified(Date modified)
     {
-        SimpleDateFormat sdf = new SimpleDateFormat(JenaOREConstants.dateFormat);
-        String date = sdf.format(modified);
+       Calendar cal = Calendar.getInstance();
+       cal.setTime(modified);
+        String date = DatatypeConverter.printDateTime(cal);
         res.addProperty(DCTerms.modified, model.createTypedLiteral(date, JenaOREConstants.dateTypedLiteral));
     }
 

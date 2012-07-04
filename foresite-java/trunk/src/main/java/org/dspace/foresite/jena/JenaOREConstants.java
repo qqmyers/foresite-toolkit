@@ -40,9 +40,9 @@ package org.dspace.foresite.jena;
  */
 public class JenaOREConstants
 {
-    public static final String dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ";
+    //public static final String dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ";
 
-    public static final String dateTypedLiteral = "http://www.w3.org/2001/XMLSchema#date";
+    public static final String dateTypedLiteral = "http://www.w3.org/2001/XMLSchema#dateTime";
 
     public static final String oreNamespacePrefix = "ore";
 
